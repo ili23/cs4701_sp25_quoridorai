@@ -99,6 +99,11 @@ class QuoridorGame:
         return bfs(self.pawns[0], self.board_size - 1) and bfs(self.pawns[1], 0)
 
     def print_game_state(self):
+        # ANSI color codes
+        BLUE = '\033[94m'    # For placed walls
+        GRAY = '\033[90m'    # For potential wall slots
+        RESET = '\033[0m'    # Reset color
+        
         print("Current board state:\n")
         
         for row in range(self.board_size):
@@ -113,16 +118,22 @@ class QuoridorGame:
 
                 if col < self.board_size - 1:
                     has_fence = self.vertical_fences[row][col] or (col > 0 and self.vertical_fences[row-1][col])
-                    print("║" if has_fence else "│", end="")
+                    if has_fence:
+                        print(f"{BLUE}║{RESET}", end="")
+                    else:
+                        print(f"{GRAY}│{RESET}", end="")
 
             print()
 
             if row < self.board_size - 1:
                 for col in range(self.board_size):
                     has_fence = self.horizontal_fences[row][col] or (row > 0 and self.horizontal_fences[row][col-1])
-                    print("═══" if has_fence else "───", end="")
+                    if has_fence:
+                        print(f"{BLUE}═══{RESET}", end="")
+                    else:
+                        print(f"{GRAY}───{RESET}", end="")
                     if col < self.board_size - 1:
-                        print("╬", end="")  # Intersection for a cleaner grid
+                        print(f"{GRAY}╬{RESET}", end="")  # Intersection for a cleaner grid
                 print()
 
         print(f"\nPlayer 0 fences left: {self.fences[0]}")
@@ -140,6 +151,7 @@ class QuoridorGame:
 board = QuoridorGame()
 board.place_fence(0, (1, 1), 'V')
 board.place_fence(1, (7, 1), 'V')
+board.place_fence(0, (1, 1), 'H')
 board.print_game_state()
 print(board.vertical_fences)
 # board.move_pawn(0, (1, 4))
