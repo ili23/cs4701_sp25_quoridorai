@@ -147,6 +147,7 @@ class QuoridorGame:
                 return 1
         return None
 
+
 # Example usage
 board = QuoridorGame()
 board.place_fence(0, (1, 1), 'V')
