@@ -34,6 +34,8 @@ class GameState:
         self.w = 0
 
     def value(self):
+        if self.n == 0:
+            return np.inf
         c = np.sqrt(2)
         return (self.w / self.n) + c * np.sqrt(np.log(self.parent.n) / self.n)
     
@@ -47,7 +49,7 @@ class GameState:
             else:
                 values = [child.value() for child in self.children]
                 self.children[np.argmax(values)].expand()
-
+    
     def backprop(self, winner):
         self.n += 1
         if self.state.current_player == winner:
@@ -57,7 +59,7 @@ class GameState:
             self.backprop(winner)
 
 
-start_state = "start state"
+start_state = "TODO: start state"
 tree = GameState(start_state)
 for i in range(1000):
     tree.expand()
