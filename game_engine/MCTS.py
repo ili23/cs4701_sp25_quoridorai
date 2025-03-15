@@ -1,4 +1,7 @@
 import numpy as np
+from queue import Queue
+
+from utility import argmax
 
 def get_possible_moves(state):
     possible_moves = list("TODO")
@@ -13,7 +16,7 @@ def isTerminal(state):
     pass
 
 def getWinner(state):
-    """TODO return bool"""
+    """TODO return int"""
     assert isTerminal(state)
     pass
 
@@ -24,7 +27,7 @@ def rollout(state):
     
     return getWinner(state)
 
-class GameState:
+class GameTree:
     def __init__(self, start_state, parent=None):
         self.state = start_state
         self.possible_actions = get_possible_moves(self.state)
@@ -45,7 +48,7 @@ class GameState:
         else:
             if self.children is None:
                 self.backprop(rollout(self.state))
-                self.children = [GameState(step(self.state, a), parent=self) for a in self.possible_actions]
+                self.children = [GameTree(step(self.state, a), parent=self) for a in self.possible_actions]
             else:
                 values = [child.value() for child in self.children]
                 self.children[np.argmax(values)].expand()
@@ -58,11 +61,41 @@ class GameState:
         if self.parent is not None:
             self.backprop(winner)
 
+    def find_child(self, state, depth=1):
+        """"""
+        q = Queue()
+        q.put((self, depth))
 
-start_state = "TODO: start state"
-tree = GameState(start_state)
-for i in range(1000):
-    tree.expand()
+        while q:
+            t, d  = q.pop()
+            if t.state == state:
+                return t
+            if d > 0:
+                for child in t.children:
+                    q.put((child, d-1))
+        
+
+class Agent:
+    def __init__(self):
+        self.search_depth
+        self.tree = None
+    
+    def select_move(self, state, update_tree = True):
+        assert not isTerminal(state)
+
+        # Update tree so that root node has current board state
+        if not (self.tree and update_tree):
+            self.tree = GameTree(state)
+        else:
+            # If possible, look in old tree for cur state -> works well if the agent is playing a full game
+            self.tree = self.tree.find_child(state)
+            if self.tree is None:
+                self.tree = GameTree(state)
+
+        for _ in range(self.search_depth):
+            self.tree.expand()
+
+        return get_possible_moves(state)[argmax(self.tree.children, key=lambda tree: 0 if tree.n == 0 else tree.w / tree.n)]                
     
 
     
