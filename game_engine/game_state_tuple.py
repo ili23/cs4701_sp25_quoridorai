@@ -343,7 +343,11 @@ def print_game_state(state):
 def example_gameplay():
     # Create initial state
     state = create_initial_state()
+    print(state)
+    print("==============================================")
     print_game_state(state)
+    print(get_possible_moves(state)[0:10])
+
     
     # Apply a sequence of moves
     moves = [
@@ -368,10 +372,13 @@ def example_gameplay():
             print(f"Player {winner} wins!")
             break
     
-    # Show available moves for current player
-    current_moves = get_possible_moves(state)
-    print(f"Available moves for player {state[4]}: {current_moves[:5]}...")
-    print(f"Total available moves: {len(current_moves)}")
+    # # Show available moves for current player
+    # current_moves = get_possible_moves(state)
+    # print(f"Available moves for player {state[4]}: {current_moves[:5]}...")
+    # print(f"Total available moves: {len(current_moves)}")
+
+def is_terminal(state):
+    return check_winner(state) is not None
 
 if __name__ == "__main__":
     example_gameplay() 
