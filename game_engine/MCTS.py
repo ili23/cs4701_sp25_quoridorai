@@ -1,13 +1,5 @@
 import numpy as np
 
-def get_possible_moves(state):
-    possible_moves = list("TODO")
-    return possible_moves
-
-def step(state, a):
-    new_state = "TODO"
-    return new_state
-
 def isTerminal(state):
     """TODO return bool"""
     pass

@@ -1,14 +1,23 @@
 from collections import deque
-
+PLAYER_ONE = 0
+PLAYER_TWO = 1
 class QuoridorGame:
     def __init__(self):
         self.board_size = 9
         self.pawns = [(0, 4), (8, 4)]  # Player 1 and Player 2 starting positions
         self.fences = [10, 10]  # Each player starts with 10 fences
-        self.current_player = 0
+        self.current_player = PLAYER_ONE # or 1
         self.horizontal_fences = [[False] * (self.board_size) for _ in range(self.board_size - 1)]
         self.vertical_fences = [[False] * (self.board_size - 1) for _ in range(self.board_size)]
+        self.possible_moves = []
+        
+    def get_possible_moves(self):
+        return self.possible_moves
 
+    def step(self, move):
+        return new_state
+
+    
     def move_pawn(self, player, new_position):
         # Validate player and position inputs
         if not isinstance(player, int) or player < 0:
