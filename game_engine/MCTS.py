@@ -5,24 +5,24 @@ from utility import argmax
 
 def isTerminal(state):
     """TODO return bool"""
-    pass
+    return state.winner is not None
 
 def getWinner(state):
     """TODO return int"""
     assert isTerminal(state)
-    pass
+    return state.winner
 
 def rollout(state):
     while not isTerminal(state):
-        a = np.random.choice(get_possible_moves(state))
-        state = step(state, a)
+        a = np.random.choice(state.get_possible_moves(state))
+        state = state.step(state, a)
     
     return getWinner(state)
 
 class GameTree:
     def __init__(self, start_state, parent=None):
         self.state = start_state
-        self.possible_actions = get_possible_moves(self.state)
+        self.possible_actions = self.state.get_possible_moves(self.state)
         self.children = None
         self.parent = parent
         self.n = 0
