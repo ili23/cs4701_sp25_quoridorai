@@ -11,10 +11,15 @@ class Move {
   // Move the current pawn to the given position, (x, y)
   Move(int x, int y);
   Move(std::pair<int, int> p);
+
+  // Create a fence placing move. If h is true, place a horizontal fence,
+  // otherwise place a vertical fence
+  Move(bool h, std::pair<int, int> p);
   Move();
 
   std::pair<int, int> pos;
   bool pawnMove;
+  bool hFence;
 };
 
 class Gamestate {
@@ -45,5 +50,8 @@ class Gamestate {
 
   std::unique_ptr<Gamestate> applyMove(const Move &m) const;
 
-  std::vector<Move> getMoves() const;
+  std::vector<Move> getMoves();
+  bool pathToEnd(bool p1);
+
+ private:
 };

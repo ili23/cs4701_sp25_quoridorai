@@ -15,6 +15,8 @@ cdef extern from "MCTS.hpp":
 
         void displayAllMoves()
 
+        bint pathToEnd(bint) 
+
         shared_ptr[Gamestate]  applyMove(Move)
 
         
