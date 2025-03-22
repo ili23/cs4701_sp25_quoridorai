@@ -2,27 +2,21 @@ import numpy as np
 from queue import Queue
 
 from utility import argmax
+from game_state_tuple import get_possible_moves, apply_move, isTerminal, check_winner
 
-def isTerminal(state):
-    """TODO return bool"""
-    return state.winner is not None
 
-def getWinner(state):
-    """TODO return int"""
-    assert isTerminal(state)
-    return state.winner
 
 def rollout(state):
     while not isTerminal(state):
-        a = np.random.choice(state.get_possible_moves(state))
-        state = state.step(state, a)
+        a = np.random.choice(get_possible_moves(state))
+        state = apply_move(state, a)
     
-    return getWinner(state)
+    return check_winner(state)
 
 class GameTree:
     def __init__(self, start_state, parent=None):
         self.state = start_state
-        self.possible_actions = self.state.get_possible_moves(self.state)
+        self.possible_actions = get_possible_moves(self.state)
         self.children = None
         self.parent = parent
         self.n = 0
@@ -36,11 +30,11 @@ class GameTree:
     
     def expand(self):
         if self.state.is_terminal:
-            self.backprop(getWinner(self.state))
+            self.backprop(check_winner(self.state))
         else:
             if self.children is None:
                 self.backprop(rollout(self.state))
-                self.children = [GameTree(step(self.state, a), parent=self) for a in self.possible_actions]
+                self.children = [GameTree(apply_move(self.state, a), parent=self) for a in self.possible_actions]
             else:
                 values = [child.value() for child in self.children]
                 self.children[np.argmax(values)].expand()
@@ -68,8 +62,8 @@ class GameTree:
         
 
 class Agent:
-    def __init__(self):
-        self.search_depth
+    def __init__(self, iters = 50):
+        self.search_depth = iters
         self.tree = None
     
     def select_move(self, state, update_tree = True):

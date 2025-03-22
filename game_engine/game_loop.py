@@ -6,6 +6,8 @@ from game_state_tuple import (
     print_game_state,
     check_winner
 )
+
+from MCTS import Agent
 import random
 
 def game_loop(player0_is_bot=False, player1_is_bot=False):
@@ -24,6 +26,7 @@ def game_loop(player0_is_bot=False, player1_is_bot=False):
     
     # Keep track of player types
     is_bot = [player0_is_bot, player1_is_bot]
+    agents = [Agent() , Agent()]
     
     while not is_terminal(state):
         current_player = state[4]  # Get current player from state tuple
@@ -31,7 +34,7 @@ def game_loop(player0_is_bot=False, player1_is_bot=False):
         
         if is_bot[current_player]:
             # Bot player - for now, just choose a random move
-            bot_move = random.choice(possible_moves)
+            bot_move = agents[current_player].select_move(state)
             print(f"Player {current_player} (BOT) chooses move: {bot_move}")
             state = apply_move(state, bot_move)
         else:
