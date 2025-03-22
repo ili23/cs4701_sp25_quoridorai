@@ -17,6 +17,7 @@ BOARD_SIZE = 9
 # )
 def get_current_player(state):
     return state[4]
+
 def create_initial_state():
     """Create the initial game state tuple"""
     # Initial pawn positions
@@ -200,11 +201,11 @@ def get_possible_moves(state):
     pawn_moves = get_valid_pawn_moves(state, current_player)
     
     # # Get fence moves (if player has fences left)
-    # if fences[current_player] > 0:
-    #     fence_moves = get_valid_fence_moves(state, current_player)
-    #     return pawn_moves + fence_moves
-    # else:
-    return pawn_moves
+    if fences[current_player] > 0:
+        fence_moves = get_valid_fence_moves(state, current_player)
+        return pawn_moves + fence_moves
+    else:
+        return pawn_moves
 
 def apply_move(state, move):
     """Apply a move and return the new state. 

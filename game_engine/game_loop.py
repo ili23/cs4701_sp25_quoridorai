@@ -27,14 +27,15 @@ def game_loop(player0_is_bot=False, player1_is_bot=False):
     # Keep track of player types
     is_bot = [player0_is_bot, player1_is_bot]
     agents = [Agent() , Agent()]
-    
+    move_count = 0
     while not is_terminal(state):
+        print(f"Move {move_count}")
+        move_count += 1
         current_player = state[4]  # Get current player from state tuple
         possible_moves = get_possible_moves(state)
         
         if is_bot[current_player]:
             # Bot player - for now, just choose a random move
-            print(get_possible_moves(state))
             bot_move = agents[current_player].select_move(state)
             print(f"Player {current_player} (BOT) chooses move: {bot_move}")
             state = apply_move(state, bot_move)

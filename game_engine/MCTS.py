@@ -8,11 +8,12 @@ from game_state_tuple import get_possible_moves, apply_move, is_terminal, check_
 
 
 def rollout(state):
-    print("rollout")
+    t = 0
     while not is_terminal(state):
         a = random.choice(get_possible_moves(state))
         state = apply_move(state, a)
-    print("end rollout")
+        t += 1
+    print(f"rollout took {t} moves")
     return check_winner(state)
 
 class GameTree:
@@ -43,9 +44,13 @@ class GameTree:
     
     def backprop(self, winner):
         self.n += 1
-        if get_current_player(self.state) == winner:
-            self.w += 1
-
+        if winner is not None:  # There is a winner
+            # The previous player is the opposite of current player in this state
+            previous_player = 1 - get_current_player(self.state)
+            # If the winner is the previous player, increment wins
+            if previous_player == winner:
+                self.w += 1
+        
         if self.parent is not None:
             self.parent.backprop(winner)
 
@@ -59,9 +64,10 @@ class GameTree:
             if t.state == state:
                 return t
             if d > 0:
-                for child in t.children:
-                    q.put((child, d-1))
-        
+                if t.children is not None:
+                    for child in t.children:
+                        q.put((child, d-1))
+        return None  # Return None if child not found
 
 class Agent:
     def __init__(self, iters = 10):
@@ -76,9 +82,7 @@ class Agent:
             self.tree = GameTree(state)
         else:
             # If possible, look in old tree for cur state -> works well if the agent is playing a full game
-            print("look for child")
             self.tree = self.tree.find_child(state)
-            print("found child")
             if self.tree is None:
                 self.tree = GameTree(state)
 
