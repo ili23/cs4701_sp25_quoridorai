@@ -34,6 +34,7 @@ def game_loop(player0_is_bot=False, player1_is_bot=False):
         
         if is_bot[current_player]:
             # Bot player - for now, just choose a random move
+            print(get_possible_moves(state))
             bot_move = agents[current_player].select_move(state)
             print(f"Player {current_player} (BOT) chooses move: {bot_move}")
             state = apply_move(state, bot_move)
@@ -137,8 +138,8 @@ def main():
     
     except KeyboardInterrupt:
         print("\nGame interrupted. Exiting...")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    # except Exception as e:
+    #     print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
