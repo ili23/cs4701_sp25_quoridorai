@@ -1,5 +1,4 @@
 def argmax(lst, key=None):
-    print(lst, key)
     m = 0
     m_i = 0
 

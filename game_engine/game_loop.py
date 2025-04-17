@@ -54,7 +54,7 @@ def game_loop(player0_is_bot=False, player1_is_bot=False):
             
             print("\nFence moves:")
             # Only show some fence moves if there are many
-            if len(fence_moves) > 10:
+            if len(fence_moves) > 200:
                 for i, move in enumerate(fence_moves[:10]):
                     print(f"{i+len(pawn_moves)+1}. Place {move[2]} fence at {move[1]}")
                 print(f"... and {len(fence_moves)-10} more fence options")

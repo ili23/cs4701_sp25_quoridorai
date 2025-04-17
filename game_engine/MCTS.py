@@ -6,11 +6,27 @@ from utility import argmax
 from game_state_tuple import get_possible_moves, apply_move, is_terminal, check_winner, get_current_player
 
 
-
-def rollout(state):
+def rollout(state, max_steps=100):
     t = 0
-    while not is_terminal(state):
-        a = random.choice(get_possible_moves(state))
+    while not is_terminal(state) and t < max_steps:
+        # Heuristic: prefer moves that advance toward goal
+        moves = get_possible_moves(state)
+        current_player = get_current_player(state)
+        
+        # Prioritize pawn moves that advance toward goal
+        pawn_moves = [m for m in moves if m[0] == "move"]
+        if pawn_moves:
+            goal_row = 8 if current_player == 0 else 0
+            # Sort moves by distance to goal
+            pawn_moves.sort(key=lambda m: abs(m[1][0] - goal_row))
+            # 70% chance to pick advancing move, 30% random
+            if random.random() < 0.7:
+                a = pawn_moves[0]  # Choose move closest to goal
+            else:
+                a = random.choice(moves)
+        else:
+            a = random.choice(moves)
+            
         state = apply_move(state, a)
         t += 1
     print(f"rollout took {t} moves")
@@ -70,26 +86,43 @@ class GameTree:
         return None  # Return None if child not found
 
 class Agent:
-    def __init__(self, iters = 10):
+    def __init__(self, iters=10):
         self.search_depth = iters
         self.tree = None
+        self.move_cache = {}  # State hash -> list of possible moves
     
-    def select_move(self, state, update_tree = True):
+    def get_cached_moves(self, state):
+        """Get cached moves for a state or calculate and cache them"""
+        state_hash = hash(state)
+        if state_hash in self.move_cache:
+            print("Found moves in cache")
+            return self.move_cache[state_hash]
+        
+        moves = get_possible_moves(state)
+        self.move_cache[state_hash] = moves
+        return moves
+    
+    def select_move(self, state, update_tree=True):
         assert not is_terminal(state)
 
         # Update tree so that root node has current board state
         if not (self.tree and update_tree):
             self.tree = GameTree(state)
         else:
-            # If possible, look in old tree for cur state -> works well if the agent is playing a full game
+            # If possible, look in old tree for cur state
             self.tree = self.tree.find_child(state)
             if self.tree is None:
                 self.tree = GameTree(state)
 
+        # Use cached moves for the tree
+        self.tree.possible_actions = self.get_cached_moves(state)
+
         for _ in range(self.search_depth):
             self.tree.expand()
 
-        return get_possible_moves(state)[argmax(self.tree.children, key=lambda tree: 0 if tree.n == 0 else tree.w / tree.n)]                
+        # Get the best child based on win rate
+        best_child_idx = argmax(self.tree.children, key=lambda tree: 0 if tree.n == 0 else tree.w / tree.n)
+        return self.get_cached_moves(state)[best_child_idx]
     
 
     
