@@ -9,7 +9,7 @@ std::unordered_map<Gamestate, std::vector<Move>> POSSIBLE_MOVES;
 std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 
 // Helper function implementations
-bool isTerminal(const Gamestate& state) { return checkWi nner(state) != -1; }
+bool isTerminal(const Gamestate& state) { return checkWinner(state) != -1; }
 
 int checkWinner(const Gamestate& state) {
   // Player 1 wins by reaching the bottom row
