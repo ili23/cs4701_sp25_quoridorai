@@ -1,251 +1,252 @@
 #include "MCTS.hpp"
-
 #include <iostream>
-#include <queue>
+#include <random>
+#include <chrono>
 
-Move::Move(int x, int y) {
-  pawnMove = true;
-  pos = std::make_pair(x, y);
+// Global variables
+std::unordered_map<Gamestate, std::vector<Move>> POSSIBLE_MOVES;
+std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+
+// Helper function implementations
+bool isTerminal(const Gamestate& state) {
+    return checkWinner(state) != -1;
 }
 
-Move::Move(std::pair<int, int> p) {
-  pawnMove = true;
-  pos = p;
-}
-
-Move::Move(bool h, std::pair<int, int> p) {
-  pawnMove = false;
-  hFence = h;
-  pos = p;
-}
-
-Move::Move() {}
-
-Gamestate::Gamestate() {
-  p1Pos.first = 4;
-  p1Pos.second = 0;
-  p2Pos.first = 4;
-  p2Pos.second = 8;
-
-  p1Turn = true;
-}
-
-void Gamestate::displayBoard() {
-  std::cout << (p1Turn ? "X" : "O") << " to move" << std::endl;
-
-  for (int y = kBoardSize - 1; y >= 0; y--) {
-    std::cout << "  ";
-    for (int x = 0; x < kBoardSize; x++) {
-      // std::cout << " ";
-      if (vFences[x][y] == 1) {
-        std::cout << "<==>";
-      } else {
-        std::cout << "----";
-      }
-      std::cout << " ";
+int checkWinner(const Gamestate& state) {
+    // Player 1 wins by reaching the bottom row
+    if (state.p1Pos.second == kBoardSize - 1) {
+        return 0;
     }
+    
+    // Player 2 wins by reaching the top row
+    if (state.p2Pos.second == 0) {
+        return 1;
+    }
+    
+    // No winner yet
+    return -1;
+}
 
-    std::cout << std::endl;
-    for (int x = 0; x < kBoardSize; x++) {
-      if (x > 0 && hFences[x - 1][y] == 1) {
-        std::cout << "[|]";
-      } else {
-        std::cout << " | ";
-      }
+bool getCurrentPlayer(const Gamestate& state) {
+    return state.p1Turn;
+}
 
-      if (std::make_pair(x, y) == p1Pos) {
-        std::cout << "X";
-      } else if (std::make_pair(x, y) == p2Pos) {
-        std::cout << "O";
-      } else {
-        std::cout << " ";
-      }
+std::vector<Move> accessCacheOrUpdate(const Gamestate& state) {
+    if (POSSIBLE_MOVES.find(state) == POSSIBLE_MOVES.end()) {
+        POSSIBLE_MOVES[state] = state.getMoves();
+    }
+    return POSSIBLE_MOVES[state];
+}
 
-      std::cout << " ";
-      if (x == kBoardSize - 1) {
-        if (hFences[x][y]) {
-          std::cout << "[|]" << std::endl;
+int rollout(const Gamestate& state, int maxSteps) {
+    Gamestate currentState = state;
+    int t = 0;
+    
+    while (!isTerminal(currentState) && t < maxSteps) {
+        // Get all possible moves
+        std::vector<Move> moves = accessCacheOrUpdate(currentState);
+        if (moves.empty()) {
+            break;
+        }
+        
+        // Collect pawn moves for heuristic selection
+        std::vector<Move> pawnMoves;
+        for (const auto& move : moves) {
+            if (move.pawnMove) {
+                pawnMoves.push_back(move);
+            }
+        }
+        
+        Move selectedMove;
+        if (!pawnMoves.empty()) {
+            // Current player
+            bool currentPlayer = getCurrentPlayer(currentState);
+            int goalRow = currentPlayer ? kBoardSize - 1 : 0;
+            
+            // Sort moves by distance to goal
+            std::sort(pawnMoves.begin(), pawnMoves.end(),
+                [goalRow](const Move& a, const Move& b) {
+                    return std::abs(a.pos.second - goalRow) < std::abs(b.pos.second - goalRow);
+                });
+            
+            // Use the move closest to the goal
+            selectedMove = pawnMoves[0];
         } else {
-          std::cout << " | " << std::endl;
+            // Randomly select a move
+            std::uniform_int_distribution<int> dist(0, moves.size() - 1);
+            selectedMove = moves[dist(rng)];
         }
-      }
+        
+        // Apply the selected move
+        currentState = *currentState.applyMove(selectedMove);
+        t++;
     }
-  }
-  std::cout << "  ---- ---- ---- ---- ---- ---- ---- ---- ----" << std::endl;
+    
+    std::cout << "rollout took " << t << " moves" << std::endl;
+    return checkWinner(currentState);
 }
 
-std::unique_ptr<Gamestate> Gamestate::applyMove(const Move &m) const {
-  std::unique_ptr<Gamestate> g = std::make_unique<Gamestate>(*this);
-
-  if (m.pawnMove) {
-    if (g->p1Turn) {
-      g->p1Pos = m.pos;
-    } else {
-      g->p2Pos = m.pos;
+// GameTree implementation
+GameTree::GameTree(const Gamestate& state, GameTree* parent, 
+                   std::unordered_map<Gamestate, StateInfo>* stateCache)
+    : state(state), parent(parent), stateCache(stateCache) {
+    
+    // Initialize the state entry if it doesn't exist
+    if (stateCache != nullptr && stateCache->find(state) == stateCache->end()) {
+        (*stateCache)[state] = StateInfo();
     }
-  } else {
-    if (g->p1Turn) {
-      g->p1Fences--;
-    } else {
-      g->p2Fences--;
-    }
-    if (m.hFence) {
-      g->hFences[m.pos.first][m.pos.second] = true;
-    } else {
-      g->vFences[m.pos.first][m.pos.second] = true;
-    }
-  }
-
-  g->p1Turn = !g->p1Turn;
-
-  return g;
 }
 
-bool inBounds(std::pair<int, int> x) {
-  return x.first >= 0 && x.first < kBoardSize && x.second >= 0 &&
-         x.second < kBoardSize;
+GameTree::~GameTree() {
+    // Children are managed by unique_ptr, so they'll be deleted automatically
 }
 
-std::vector<Move> Gamestate::getMoves() {
-  std::vector<Move> moves;
+double GameTree::value() const {
+    if ((*stateCache)[state].n == 0) {
+        return std::numeric_limits<double>::infinity();
+    }
+    
+    const double c = std::sqrt(2.0);
+    return (double)(*stateCache)[state].w / (*stateCache)[state].n + 
+           c * std::sqrt(std::log((*stateCache)[parent->state].n) / (*stateCache)[state].n);
+}
 
-  std::pair<int, int> startingPoint = p1Turn ? p1Pos : p2Pos;
-  std::pair<int, int> otherPawn = p1Turn ? p2Pos : p1Pos;
-
-  // Find valid pawn moves
-  std::pair<int, int> target =
-      std::make_pair(startingPoint.first, startingPoint.second + 1);
-
-  if (inBounds(target) && target != otherPawn &&
-      !vFences[startingPoint.first][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first, startingPoint.second - 1);
-
-  if (inBounds(target) && target != otherPawn &&
-      !vFences[startingPoint.first][startingPoint.second - 1]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first + 1, startingPoint.second);
-
-  if (inBounds(target) && target != otherPawn &&
-      !hFences[startingPoint.first][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first - 1, startingPoint.second);
-
-  if (inBounds(target) && target != otherPawn &&
-      !hFences[startingPoint.first - 1][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  // Return if the current player has no more fences to place
-  if ((p1Turn ? p1Fences : p2Fences) <= 0) {
-    std::cout << "REUNGING EARLYT BC NUMBER OF FENCES " << std::endl;
-    return moves;
-  }
-
-  // Find valid fence moves
-  for (int x = 0; x < kBoardSize; x++) {
-    for (int y = 0; y < kBoardSize; y++) {
-      if (!hFences[x][y]) {
-        hFences[x][y] = true;
-
-        if (pathToEnd(true) && pathToEnd(false)) {
-          moves.emplace_back(true, std::make_pair(x, y));
+void GameTree::expand() {
+    if (isTerminal(state)) {
+        backprop(checkWinner(state));
+    } else {
+        if (children.empty()) {
+            backprop(rollout(state));
+            
+            // Create children for all possible moves
+            std::vector<Move> moves = accessCacheOrUpdate(state);
+            for (const auto& move : moves) {
+                std::unique_ptr<Gamestate> nextState = state.applyMove(move);
+                children.push_back(std::make_unique<GameTree>(*nextState, this, stateCache));
+            }
         } else {
-          std::cout << "SKILPING FENCE BC NO MATH" << std::endl;
+            // Find the child with the highest UCB value
+            double maxValue = -std::numeric_limits<double>::infinity();
+            size_t bestChildIndex = 0;
+            
+            for (size_t i = 0; i < children.size(); i++) {
+                double childValue = children[i]->value();
+                if (childValue > maxValue) {
+                    maxValue = childValue;
+                    bestChildIndex = i;
+                }
+            }
+            
+            // Expand the best child
+            children[bestChildIndex]->expand();
         }
-        hFences[x][y] = false;
-      }
-      if (!vFences[x][y]) {
-        vFences[x][y] = true;
+    }
+}
 
-        if (pathToEnd(true) && pathToEnd(false)) {
-          moves.emplace_back(false, std::make_pair(x, y));
+void GameTree::backprop(int winner) {
+    (*stateCache)[state].n += 1;
+    
+    if (winner != -1) {  // There is a winner
+        // The previous player is the opposite of current player in this state
+        bool previousPlayer = !getCurrentPlayer(state);
+        
+        // If the winner is the previous player, increment wins
+        if ((previousPlayer && winner == 0) || (!previousPlayer && winner == 1)) {
+            (*stateCache)[state].w += 1;
         }
-        vFences[x][y] = false;
-      }
     }
-  }
-
-  return moves;
+    
+    if (parent != nullptr) {
+        parent->backprop(winner);
+    }
 }
 
-void Gamestate::displayAllMoves() {
-  std::vector<Move> allMoves = getMoves();
-
-  for (Move m : allMoves) {
-    auto v = applyMove(m);
-    v->displayBoard();
-  }
+GameTree* GameTree::findChild(const Gamestate& targetState, int depth) {
+    std::queue<std::pair<GameTree*, int>> q;
+    q.push({this, depth});
+    
+    while (!q.empty()) {
+        auto [tree, d] = q.front();
+        q.pop();
+        
+        if (tree->state.p1Pos == targetState.p1Pos && 
+            tree->state.p2Pos == targetState.p2Pos &&
+            tree->state.p1Turn == targetState.p1Turn) {
+            return tree;
+        }
+        
+        if (d > 0 && !tree->children.empty()) {
+            for (const auto& child : tree->children) {
+                q.push({child.get(), d - 1});
+            }
+        }
+    }
+    
+    return nullptr;  // Child not found
 }
 
-bool Gamestate::pathToEnd(bool p1) {
-  bool reachable[kBoardSize][kBoardSize] = {};
+// Agent implementation
+Agent::Agent(int iterations) : searchDepth(iterations), tree(nullptr) {}
 
-  std::queue<std::pair<int, int>> toSearch;
-
-  toSearch.push(p1 ? p1Pos : p2Pos);
-  reachable[toSearch.front().first][toSearch.front().second] = true;
-
-  std::pair<int, int> otherPawn = p1 ? p2Pos : p1Pos;
-
-  std::pair<int, int> target;
-  std::pair<int, int> startingPoint;
-
-  while (!toSearch.empty()) {
-    startingPoint = toSearch.front();
-
-    target = std::make_pair(startingPoint.first, startingPoint.second + 1);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !vFences[startingPoint.first][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first, startingPoint.second - 1);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !vFences[startingPoint.first][startingPoint.second - 1]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first + 1, startingPoint.second);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !hFences[startingPoint.first][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first - 1, startingPoint.second);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !hFences[startingPoint.first - 1][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    toSearch.pop();
-  }
-
-  // Check back row
-  // Player 1's back row is y = kBoardSize - 1
-  // Player 2's back row is y = 0
-  int y = p1 ? kBoardSize - 1 : 0;
-  for (int x = 0; x < kBoardSize; x++) {
-    if (reachable[x][y]) return true;
-  }
-
-  return false;
+Agent::~Agent() {
+    // Tree is managed by unique_ptr, so it'll be deleted automatically
 }
+
+Move Agent::selectMove(const Gamestate& state) {
+    // Make sure the state is not terminal
+    if (isTerminal(state)) {
+        throw std::runtime_error("Cannot select a move for a terminal state");
+    }
+    
+    // Create or update the tree
+    if (tree == nullptr) {
+        tree = std::make_unique<GameTree>(state, nullptr, &stateCache);
+    } else if (tree->state.p1Pos != state.p1Pos || 
+               tree->state.p2Pos != state.p2Pos ||
+               tree->state.p1Turn != state.p1Turn) {
+        // If the state has changed, create a new tree with the existing state cache
+        tree = std::make_unique<GameTree>(state, nullptr, &stateCache);
+    }
+    
+    // Run the search algorithm
+    for (int i = 0; i < searchDepth; i++) {
+        tree->expand();
+    }
+    
+    // Get all possible moves
+    std::vector<Move> possibleMoves = accessCacheOrUpdate(state);
+    
+    // Find the child with the best win ratio
+    double bestScore = -1.0;
+    size_t bestChildIndex = 0;
+    
+    for (size_t i = 0; i < tree->children.size(); i++) {
+        const auto& childState = tree->children[i]->state;
+        
+        // Only consider if the state has been visited
+        if (stateCache[childState].n > 0) {
+            double score = (double)stateCache[childState].w / stateCache[childState].n;
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestChildIndex = i;
+            }
+        }
+    }
+    
+    // Find which move leads to the best child state
+    const auto& bestChildState = tree->children[bestChildIndex]->state;
+    
+    // Match the move from possible moves that leads to this state
+    for (size_t i = 0; i < possibleMoves.size(); i++) {
+        std::unique_ptr<Gamestate> nextState = state.applyMove(possibleMoves[i]);
+        
+        if (nextState->p1Pos == bestChildState.p1Pos && 
+            nextState->p2Pos == bestChildState.p2Pos) {
+            return possibleMoves[i];
+        }
+    }
+    
+    // Fallback to first move if somehow no match is found
+    return possibleMoves[0];
+} 

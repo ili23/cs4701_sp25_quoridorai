@@ -1,57 +1,67 @@
+#ifndef MCTS_HPP_
+#define MCTS_HPP_
+
 #include <memory>
-#include <utility>
 #include <vector>
+#include <unordered_map>
+#include <random>
+#include <cmath>
+#include <queue>
+#include <algorithm>
+#include <functional>
+#include <limits>
 
-constexpr int kBoardSize = 9;
+#include "game_state_tuple.hpp"
 
-constexpr int kStartingFences = 10;
+// Forward declarations
+class Move;
+class Gamestate;
 
-class Move {
- public:
-  // Move the current pawn to the given position, (x, y)
-  Move(int x, int y);
-  Move(std::pair<int, int> p);
-
-  // Create a fence placing move. If h is true, place a horizontal fence,
-  // otherwise place a vertical fence
-  Move(bool h, std::pair<int, int> p);
-  Move();
-
-  std::pair<int, int> pos;
-  bool pawnMove;
-  bool hFence;
+// State cache struct to store visit counts and wins
+struct StateInfo {
+    int n = 0;  // visit count
+    int w = 0;  // win count
 };
 
-class Gamestate {
- public:
-  Gamestate();
+// GameTree class for MCTS
+class GameTree {
+public:
+    GameTree(const Gamestate& state, GameTree* parent = nullptr, 
+             std::unordered_map<Gamestate, StateInfo>* stateCache = nullptr);
+    ~GameTree();
 
-  std::pair<int, int> p1Pos;
-  std::pair<int, int> p2Pos;
+    double value() const;
+    void expand();
+    void backprop(int winner);
+    GameTree* findChild(const Gamestate& state, int depth = 2);
 
-  int p1Fences = kStartingFences;
-  int p2Fences = kStartingFences;
-
-  // Horizontal fences are defined to be to the right of the space they are
-  // listed on That is, a fence at (x, y) indicates that players can no longer
-  // move between space (x, y) and (x + 1, y)
-  int hFences[kBoardSize][kBoardSize] = {};
-
-  // Vertical fences are defined to be above the space they are listed on.
-  // That is, a fence at (x, y) indicates that players can no longer move
-  // between space (x, y) and (x, y + 1)
-  int vFences[kBoardSize][kBoardSize] = {};
-
-  bool p1Turn;
-
-  void displayBoard();
-
-  void displayAllMoves();
-
-  std::unique_ptr<Gamestate> applyMove(const Move &m) const;
-
-  std::vector<Move> getMoves();
-  bool pathToEnd(bool p1);
-
- private:
+    std::vector<std::unique_ptr<GameTree>> children;
+    Gamestate state;
+    GameTree* parent;
+    std::unordered_map<Gamestate, StateInfo>* stateCache;
 };
+
+// Agent class that uses MCTS to select moves
+class Agent {
+public:
+    Agent(int iterations = 100);
+    ~Agent();
+
+    Move selectMove(const Gamestate& state);
+
+private:
+    int searchDepth;
+    std::unique_ptr<GameTree> tree;
+    std::unordered_map<Gamestate, StateInfo> stateCache;
+};
+
+// Helper functions
+bool isTerminal(const Gamestate& state);
+int checkWinner(const Gamestate& state);
+bool getCurrentPlayer(const Gamestate& state);
+
+// MCTS specific functions
+int rollout(const Gamestate& state, int maxSteps = 100);
+std::vector<Move> accessCacheOrUpdate(const Gamestate& state);
+
+#endif // MCTS_HPP_ 
