@@ -36,12 +36,12 @@ class Gamestate {
   // Horizontal fences are defined to be to the right of the space they are
   // listed on That is, a fence at (x, y) indicates that players can no longer
   // move between space (x, y) and (x + 1, y)
-  int hFences[kBoardSize][kBoardSize] = {};
+  bool hFences[kBoardSize][kBoardSize] = {};
 
   // Vertical fences are defined to be above the space they are listed on.
   // That is, a fence at (x, y) indicates that players can no longer move
   // between space (x, y) and (x, y + 1)
-  int vFences[kBoardSize][kBoardSize] = {};
+  bool vFences[kBoardSize][kBoardSize] = {};
 
   bool p1Turn;
 
@@ -98,9 +98,9 @@ struct hash<Gamestate> {
     // Hash the fence arrays (simplified for performance)
     for (int i = 0; i < kBoardSize; i++) {
       for (int j = 0; j < kBoardSize; j++) {
-        seed ^= hash<int>()(state.hFences[i][j]) + 0x9e3779b9 + (seed << 6) +
+        seed ^= hash<bool>()(state.hFences[i][j]) + 0x9e3779b9 + (seed << 6) +
                 (seed >> 2);
-        seed ^= hash<int>()(state.vFences[i][j]) + 0x9e3779b9 + (seed << 6) +
+        seed ^= hash<bool>()(state.vFences[i][j]) + 0x9e3779b9 + (seed << 6) +
                 (seed >> 2);
       }
     }

@@ -12,13 +12,13 @@ std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
 bool isTerminal(const Gamestate& state) { return checkWinner(state) != -1; }
 
 int checkWinner(const Gamestate& state) {
-  // Player 1 wins by reaching the bottom row
-  if (state.p1Pos.second == kBoardSize - 1) {
+  // Player 0 wins by reaching the bottom row (BOARD_SIZE - 1)
+  if (state.p1Pos.first == kBoardSize - 1) {
     return 0;
   }
 
-  // Player 2 wins by reaching the top row
-  if (state.p2Pos.second == 0) {
+  // Player 1 wins by reaching the top row (0)
+  if (state.p2Pos.first == 0) {
     return 1;
   }
 
@@ -163,24 +163,25 @@ void GameTree::backprop(int winner) {
 GameTree* GameTree::findChild(const Gamestate& targetState, int depth) {
   std::queue<std::pair<GameTree*, int>> q;
   q.push({this, depth});
-
+  
   while (!q.empty()) {
     auto [tree, d] = q.front();
     q.pop();
-
-    if (tree->state.p1Pos == targetState.p1Pos &&
+    
+    // Compare all aspects of the game state to find a match
+    if (tree->state.p1Pos == targetState.p1Pos && 
         tree->state.p2Pos == targetState.p2Pos &&
         tree->state.p1Turn == targetState.p1Turn) {
       return tree;
     }
-
+    
     if (d > 0 && !tree->children.empty()) {
       for (const auto& child : tree->children) {
         q.push({child.get(), d - 1});
       }
     }
   }
-
+  
   return nullptr;  // Child not found
 }
 
