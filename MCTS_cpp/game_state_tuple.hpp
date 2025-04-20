@@ -1,7 +1,7 @@
+#include <functional>  // For std::hash
 #include <memory>
 #include <utility>
 #include <vector>
-#include <functional> // For std::hash
 
 constexpr int kBoardSize = 9;
 
@@ -49,21 +49,21 @@ class Gamestate {
 
   void displayAllMoves();
 
-  std::unique_ptr<Gamestate> applyMove(const Move &m) const;
+  std::unique_ptr<Gamestate> applyMove(const Move& m) const;
 
   std::vector<Move> getMoves();
   bool pathToEnd(bool p1);
 
   // Equality operator for unordered_map
   bool operator==(const Gamestate& other) const {
-    return p1Pos == other.p1Pos && 
-           p2Pos == other.p2Pos && 
-           p1Fences == other.p1Fences &&
-           p2Fences == other.p2Fences &&
+    return p1Pos == other.p1Pos && p2Pos == other.p2Pos &&
+           p1Fences == other.p1Fences && p2Fences == other.p2Fences &&
            p1Turn == other.p1Turn &&
            // Compare fence arrays
-           std::equal(&hFences[0][0], &hFences[0][0] + kBoardSize * kBoardSize, &other.hFences[0][0]) &&
-           std::equal(&vFences[0][0], &vFences[0][0] + kBoardSize * kBoardSize, &other.vFences[0][0]);
+           std::equal(&hFences[0][0], &hFences[0][0] + kBoardSize * kBoardSize,
+                      &other.hFences[0][0]) &&
+           std::equal(&vFences[0][0], &vFences[0][0] + kBoardSize * kBoardSize,
+                      &other.vFences[0][0]);
   }
 
  private:
@@ -71,33 +71,41 @@ class Gamestate {
 
 // Hash function for Gamestate to allow it to be used as a key in unordered_map
 namespace std {
-  template<>
-  struct hash<Gamestate> {
-    std::size_t operator()(const Gamestate& state) const {
-      std::size_t seed = 0;
-      
-      // Hash the positions
-      seed ^= hash<int>()(state.p1Pos.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      seed ^= hash<int>()(state.p1Pos.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      seed ^= hash<int>()(state.p2Pos.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      seed ^= hash<int>()(state.p2Pos.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      
-      // Hash the fence counts
-      seed ^= hash<int>()(state.p1Fences) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      seed ^= hash<int>()(state.p2Fences) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      
-      // Hash the turn
-      seed ^= hash<bool>()(state.p1Turn) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-      
-      // Hash the fence arrays (simplified for performance)
-      for (int i = 0; i < kBoardSize; i++) {
-        for (int j = 0; j < kBoardSize; j++) {
-          seed ^= hash<int>()(state.hFences[i][j]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-          seed ^= hash<int>()(state.vFences[i][j]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        }
+template <>
+struct hash<Gamestate> {
+  std::size_t operator()(const Gamestate& state) const {
+    std::size_t seed = 0;
+
+    // Hash the positions
+    seed ^=
+        hash<int>()(state.p1Pos.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= hash<int>()(state.p1Pos.second) + 0x9e3779b9 + (seed << 6) +
+            (seed >> 2);
+    seed ^=
+        hash<int>()(state.p2Pos.first) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= hash<int>()(state.p2Pos.second) + 0x9e3779b9 + (seed << 6) +
+            (seed >> 2);
+
+    // Hash the fence counts
+    seed ^=
+        hash<int>()(state.p1Fences) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^=
+        hash<int>()(state.p2Fences) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+    // Hash the turn
+    seed ^= hash<bool>()(state.p1Turn) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+    // Hash the fence arrays (simplified for performance)
+    for (int i = 0; i < kBoardSize; i++) {
+      for (int j = 0; j < kBoardSize; j++) {
+        seed ^= hash<int>()(state.hFences[i][j]) + 0x9e3779b9 + (seed << 6) +
+                (seed >> 2);
+        seed ^= hash<int>()(state.vFences[i][j]) + 0x9e3779b9 + (seed << 6) +
+                (seed >> 2);
       }
-      
-      return seed;
     }
-  };
-}
+
+    return seed;
+  }
+};
+}  // namespace std
