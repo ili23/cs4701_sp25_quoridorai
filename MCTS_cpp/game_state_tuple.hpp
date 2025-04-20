@@ -9,7 +9,7 @@ constexpr int kStartingFences = 10;
 
 class Move {
  public:
-  // Move the current pawn to the given position, (x, y)
+  // Move the current pawn to the given position, (row, col)
   Move(int x, int y);
   Move(std::pair<int, int> p);
 
@@ -18,7 +18,7 @@ class Move {
   Move(bool h, std::pair<int, int> p);
   Move();
 
-  std::pair<int, int> pos;
+  std::pair<int, int> pos;  // Position as (row, col)
   bool pawnMove;
   bool hFence;
 };
@@ -27,20 +27,22 @@ class Gamestate {
  public:
   Gamestate();
 
-  std::pair<int, int> p1Pos;
-  std::pair<int, int> p2Pos;
+  std::pair<int, int> p1Pos;  // Player 1 position as (row, col)
+  std::pair<int, int> p2Pos;  // Player 2 position as (row, col)
 
   int p1Fences = kStartingFences;
   int p2Fences = kStartingFences;
 
-  // Horizontal fences are defined to be to the right of the space they are
-  // listed on That is, a fence at (x, y) indicates that players can no longer
-  // move between space (x, y) and (x + 1, y)
+  // Horizontal fences block movement between cells with different rows
+  // A fence at (row, col) blocks movement between:
+  // - (row, col) and (row+1, col)
+  // - (row, col+1) and (row+1, col+1) [due to 2-unit length]
   bool hFences[kBoardSize][kBoardSize] = {};
 
-  // Vertical fences are defined to be above the space they are listed on.
-  // That is, a fence at (x, y) indicates that players can no longer move
-  // between space (x, y) and (x, y + 1)
+  // Vertical fences block movement between cells with different columns
+  // A fence at (row, col) blocks movement between:
+  // - (row, col) and (row, col+1)
+  // - (row+1, col) and (row+1, col+1) [due to 2-unit length]
   bool vFences[kBoardSize][kBoardSize] = {};
 
   bool p1Turn;

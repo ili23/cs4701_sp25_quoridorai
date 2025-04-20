@@ -1,1 +1,0 @@
-/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/quoridor.dir/game_state_tuple.cpp.o CMakeFiles/quoridor.dir/MCTS.cpp.o CMakeFiles/quoridor.dir/main.cpp.o -o quoridor
