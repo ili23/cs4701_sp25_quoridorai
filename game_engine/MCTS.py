@@ -1,59 +1,181 @@
 import numpy as np
 import random
 from queue import Queue
+from collections import deque
 
 from utility import argmax
-from game_state_tuple import get_possible_moves, apply_move, is_terminal, check_winner, get_current_player
+from game_state_tuple import get_possible_moves, apply_move, is_terminal, check_winner, get_current_player, BOARD_SIZE, is_fence_between
 
 POSSIBLE_MOVES = {}
+SHORTEST_PATHS = {}
 def access_cache_or_update(state):
     if state not in POSSIBLE_MOVES:
         POSSIBLE_MOVES[state] = get_possible_moves(state)
     return POSSIBLE_MOVES[state]
 
+def shortest_path(state, player):
+    """
+    Compute the shortest path from the player's position to their goal using BFS.
+    Returns the length of the shortest path.
+    
+    Uses caching to avoid recomputing paths for the same state-player combination.
+    """
+    # Check cache first
+    cache_key = (state, player)
+    if cache_key in SHORTEST_PATHS:
+        return SHORTEST_PATHS[cache_key]
+    
+    pawns, _, h_fences, v_fences, _ = state
+    
+    # Goal row depends on which player we are
+    goal_row = BOARD_SIZE - 1 if player == 0 else 0
+    
+    queue = deque([(pawns[player], 0)])  # (position, distance)
+    visited = set([pawns[player]])
+    
+    while queue:
+        (x, y), distance = queue.popleft()
+        
+        # Check if reached goal row
+        if x == goal_row:
+            # Store result in cache before returning
+            SHORTEST_PATHS[cache_key] = distance
+            return distance
+            
+        # Try all four directions
+        for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < BOARD_SIZE and 0 <= ny < BOARD_SIZE and (nx, ny) not in visited:
+                # Check if move is valid (no fence blocking)
+                if not is_fence_between(state, (x, y), (nx, ny)):
+                    visited.add((nx, ny))
+                    queue.append(((nx, ny), distance + 1))
+                    
+    # If no path is found, return a large value
+    result = float('inf')
+    SHORTEST_PATHS[cache_key] = result
+    return result
+
+def calculate_pawn_probability(player_path_length, opponent_path_length):
+    """
+    Calculate the probability of making a pawn move using a sigmoid function:
+    P(pawn) = 1/(1+e^(-x/7)) where x is the difference between opponent and player path lengths.
+    
+    Positive x (opponent path > player path) → higher probability of pawn moves
+    Negative x (player path > opponent path) → lower probability of pawn moves
+    """
+    # Calculate path difference (positive when opponent's path is longer)
+    path_difference = opponent_path_length - player_path_length
+    
+    # Apply sigmoid function: 1/(1+e^(-x/7))
+    # The divisor 7 controls how gradually the probability changes with path difference
+    sigmoid = 1 / (1 + np.exp(-path_difference / 7))
+    return np.clip(sigmoid, 0.2, 0.9)
+
 def rollout(state, max_steps=100):
     t = 0
     while not is_terminal(state) and t < max_steps:
-        # Heuristic: prefer moves that advance toward goal
         moves = access_cache_or_update(state)
         current_player = get_current_player(state)
         
-        # Prioritize pawn moves that advance toward goal
+        # First, check if we can win immediately
         pawn_moves = [m for m in moves if m[0] == "move"]
-        if pawn_moves:
-            goal_row = 8 if current_player == 0 else 0
-            # Sort moves by distance to goal
-            pawn_moves.sort(key=lambda m: abs(m[1][0] - goal_row))
-            # 70% chance to pick advancing move, 30% random
-            if random.random() < 1.0:
-                a = pawn_moves[0]  # Choose move closest to goal
-            else:
-                a = random.choice(moves)
+        winning_move = find_winning_move(state, pawn_moves)
+        if winning_move:
+            # If we can win, always take that move
+            a = winning_move
         else:
-            a = random.choice(moves)
+            # Normal move selection...
+            # Get pawn moves and fence moves
+            fence_moves = [m for m in moves if m[0] == "fence"] # check if there are any fences to place
             
+            # If no moves available, return None
+            if not moves:
+                return None
+            
+            # Calculate shortest path for both players
+            player_path_length = shortest_path(state, current_player)
+            opponent_path_length = shortest_path(state, 1 - current_player)
+            
+            # Calculate the dynamic probability of making a pawn move
+            pawn_prob = calculate_pawn_probability(player_path_length, opponent_path_length)
+            
+            # Choose move type based on calculated probability
+            if pawn_moves and random.random() < pawn_prob:
+                # With 75% probability, use distance-to-goal heuristic
+                if random.random() < 0.75:
+                    goal_row = BOARD_SIZE - 1 if current_player == 0 else 0
+                    pawn_moves.sort(key=lambda m: abs(m[1][0] - goal_row))
+                    a = pawn_moves[0]  # Take move closest to goal
+                else:
+                    a = random.choice(pawn_moves)  # Random move
+            elif fence_moves: 
+                a = random.choice(fence_moves)
+            else:
+                a = random.choice(pawn_moves)
+        
+        # Apply the chosen move
         state = apply_move(state, a)
         t += 1
-    print(f"rollout took {t} moves")
+    print("rollout took", t, "steps")
     return check_winner(state)
 
+def find_winning_move(state, moves):
+    """
+    Checks if any of the given moves leads to an immediate win.
+    Returns the winning move if found, otherwise None.
+    """
+    current_player = get_current_player(state)
+    goal_row = BOARD_SIZE - 1 if current_player == 0 else 0
+    
+    for move in moves:
+        if move[0] == "move":  # Only pawn moves can lead to immediate win
+            move_pos = move[1]
+            if move_pos[0] == goal_row:  # This move reaches the goal row
+                return move
+                
+    return None
+
 class GameTree:
-    def __init__(self, start_state, parent=None, state_cache={}):
+    def __init__(self, start_state, parent=None, state_cache=None):
         self.state = start_state
         self.children = None
         self.parent = parent
-        self.state_cache = state_cache
+        
+        # Fix for mutable default argument
+        if state_cache is None:
+            self.state_cache = {}
+        else:
+            self.state_cache = state_cache
+            
         if self.state not in self.state_cache:
+            current_player = get_current_player(start_state)
+            player_path = shortest_path(start_state, current_player)
+            opponent_path = shortest_path(start_state, 1 - current_player)
+            
+            # Calculate path difference directly
+            path_difference = opponent_path - player_path
+            
             self.state_cache[self.state] = {
                 "n": 0,
                 "w": 0,
+                "path_diff": path_difference
             }
         
     def value(self):
+        """
+        Calculate the UCB1 value of this node, adjusted with the path difference
+        using the sigmoid function 1/(1+e^(-x/7)).
+        """
         if self.state_cache[self.state]["n"] == 0:
             return np.inf
-        c = np.sqrt(2)
-        return (self.state_cache[self.state]["w"] / self.state_cache[self.state]["n"]) + c * np.sqrt(np.log(self.state_cache[self.parent.state]["n"]) / self.state_cache[self.state]["n"])
+        
+        # Standard UCB1 calculation
+        c = np.sqrt(2)  # Exploration parameter
+        ucb1 = (self.state_cache[self.state]["w"] / self.state_cache[self.state]["n"]) + \
+               c * np.sqrt(np.log(self.state_cache[self.parent.state]["n"]) / self.state_cache[self.state]["n"])
+        
+        return ucb1 
     
     def expand(self):
         if is_terminal(self.state):
@@ -61,8 +183,49 @@ class GameTree:
         else:
             if self.children is None:
                 self.backprop(rollout(self.state))
-                self.children = [GameTree(apply_move(self.state, a), parent=self, state_cache=self.state_cache) for a in access_cache_or_update(self.state)]
+                
+                # Create child nodes for all possible moves
+                moves = access_cache_or_update(self.state)
+                self.children = []
+                
+                # First check for any winning moves
+                winning_move_index = -1
+                current_player = get_current_player(self.state)  # Fixed: Define current_player
+                
+                for i, move in enumerate(moves):
+                    if move[0] == "move":
+                        child_state = apply_move(self.state, move)
+                        child_node = GameTree(child_state, parent=self, state_cache=self.state_cache)
+                        self.children.append(child_node)
+                        
+                        # Check if this is a winning move
+                        if check_winner(child_state) == current_player:
+                            winning_move_index = i
+                            break
+                
+                # If we found a winning move, only keep that child
+                if winning_move_index >= 0:
+                    self.children = [self.children[winning_move_index]]
+                else:
+                    # Complete adding all remaining children
+
+                    # compute the sigmoid
+                    # either pick from pawn moves or fence moves based on the sigmoid
+                    pawn_moves = [m for m in moves if m[0] == "move"]
+                    fence_moves = [m for m in moves if m[0] == "fence"]
+                    opponent_path = shortest_path(self.state, 1 - current_player)
+                    player_path = shortest_path(self.state, current_player)
+                    sigmoid = np.clip(1 / (1 + np.exp(-(opponent_path - player_path) / 7)), 0.2, 0.9)
+                    if random.random() < sigmoid:
+                        for move in pawn_moves:
+                            child_state = apply_move(self.state, move)
+                            self.children.append(GameTree(child_state, parent=self, state_cache=self.state_cache))
+                    else:
+                        for move in fence_moves:
+                            child_state = apply_move(self.state, move)
+                            self.children.append(GameTree(child_state, parent=self, state_cache=self.state_cache))
             else:
+                # Select child with highest value to expand next
                 values = [child.value() for child in self.children]
                 self.children[np.argmax(values)].expand()
     
@@ -78,28 +241,22 @@ class GameTree:
         if self.parent is not None:
             self.parent.backprop(winner)
 
-    def find_child(self, state, depth=2):
-        """"""
-        q = Queue()
-        q.put((self, depth))
-
-        while q:
-            t, d  = q.get()
-            if t.state == state:
-                return t
-            if d > 0:
-                if t.children is not None:
-                    for child in t.children:
-                        q.put((child, d-1))
-        return None  # Return None if child not found
-
 class Agent:
-    def __init__(self, iters = 100):
+    def __init__(self, iters=10):
         self.search_depth = iters
         self.tree = None
     
     def select_move(self, state):
         assert not is_terminal(state)
+        
+        # First, check if we can win in one move
+        possible_moves = access_cache_or_update(state)
+        pawn_moves = [m for m in possible_moves if m[0] == "move"]
+        winning_move = find_winning_move(state, pawn_moves)
+        if winning_move:
+            return winning_move
+        
+        # If no immediate win, use MCTS
         if self.tree is None: 
             self.tree = GameTree(state)
         elif self.tree.state != state:
@@ -108,9 +265,9 @@ class Agent:
         for _ in range(self.search_depth):
             self.tree.expand()
         
-        possible_moves = access_cache_or_update(state)
+        # Choose move based on a combination of win ratio and path difference
         cache = self.tree.state_cache
-
-        return possible_moves[argmax(self.tree.children, key=lambda tree: 0 if cache[tree.state]["n"] == 0 else cache[tree.state]["w"] / cache[tree.state]["n"])]          
+        
+        return possible_moves[argmax(self.tree.children, key=lambda tree: 0 if cache[tree.state]["n"] == 0 else cache[tree.state]["w"] / cache[tree.state]["n"])]               
     
     
