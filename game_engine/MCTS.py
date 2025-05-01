@@ -2,6 +2,9 @@ import numpy as np
 import random
 from queue import Queue
 from collections import deque
+import pickle
+import os
+from datetime import datetime
 
 from utility import argmax
 from game_state_tuple import get_possible_moves, apply_move, is_terminal, check_winner, get_current_player, BOARD_SIZE, is_fence_between
@@ -25,7 +28,7 @@ def shortest_path(state, player):
     if cache_key in SHORTEST_PATHS:
         return SHORTEST_PATHS[cache_key]
     
-    pawns, _, h_fences, v_fences, _ = state
+    pawns, _, h_fences, v_fences, _, _ = state
     
     # Goal row depends on which player we are
     goal_row = BOARD_SIZE - 1 if player == 0 else 0
@@ -72,7 +75,7 @@ def calculate_pawn_probability(player_path_length, opponent_path_length):
     sigmoid = 1 / (1 + np.exp(-path_difference / 7))
     return np.clip(sigmoid, 0.2, 0.9)
 
-def rollout(state, max_steps=100):
+def rollout(state, max_steps=70):
     t = 0
     while not is_terminal(state) and t < max_steps:
         moves = access_cache_or_update(state)
@@ -117,7 +120,7 @@ def rollout(state, max_steps=100):
         # Apply the chosen move
         state = apply_move(state, a)
         t += 1
-    print("rollout took", t, "steps")
+    # print("rollout took", t, "steps")
     return check_winner(state)
 
 def find_winning_move(state, moves):
@@ -190,7 +193,7 @@ class GameTree:
                 
                 # First check for any winning moves
                 winning_move_index = -1
-                current_player = get_current_player(self.state)  # Fixed: Define current_player
+                current_player = get_current_player(self.state)
                 
                 for i, move in enumerate(moves):
                     if move[0] == "move":
@@ -215,7 +218,7 @@ class GameTree:
                     fence_moves = [m for m in moves if m[0] == "fence"]
                     opponent_path = shortest_path(self.state, 1 - current_player)
                     player_path = shortest_path(self.state, current_player)
-                    sigmoid = np.clip(1 / (1 + np.exp(-(opponent_path - player_path) / 7)), 0.2, 0.9)
+                    sigmoid = np.clip(1 / (1 + np.exp(-(opponent_path - player_path) / 4)), 0.2, 0.9)
                     if random.random() < sigmoid:
                         for move in pawn_moves:
                             child_state = apply_move(self.state, move)
@@ -231,18 +234,22 @@ class GameTree:
     
     def backprop(self, winner):
         self.state_cache[self.state]["n"] += 1
-        if winner is not None:  # There is a winner
-            # The previous player is the opposite of current player in this state
-            previous_player = 1 - get_current_player(self.state)
-            # If the winner is the previous player, increment wins
-            if previous_player == winner:
-                self.state_cache[self.state]["w"] += 1
+        if winner is not None:  # There is a winner or tie
+            if winner == 0.5:  # Tie case
+                # Add 0.5 points for a tie
+                self.state_cache[self.state]["w"] += 0.5
+            else:  # Winner case
+                # The previous player is the opposite of current player in this state
+                previous_player = 1 - get_current_player(self.state)
+                # If the winner is the previous player, increment wins
+                if previous_player == winner:
+                    self.state_cache[self.state]["w"] += 1
         
         if self.parent is not None:
             self.parent.backprop(winner)
 
 class Agent:
-    def __init__(self, iters=10):
+    def __init__(self, iters=100):
         self.search_depth = iters
         self.tree = None
     
@@ -270,4 +277,82 @@ class Agent:
         
         return possible_moves[argmax(self.tree.children, key=lambda tree: 0 if cache[tree.state]["n"] == 0 else cache[tree.state]["w"] / cache[tree.state]["n"])]               
     
+def generate_self_play_data(num_games=100, search_depth=50, save_dir="training_data"):
+    """
+    Generate training data from self-play games.
     
+    Args:
+        num_games: Number of self-play games to generate
+        search_depth: MCTS iterations per move
+        save_dir: Directory to save training data
+    
+    Returns:
+        Path to the saved training data file
+    """
+    # Create save directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Initialize data structures to store training examples
+    training_data = []
+    
+    # Create MCTS agent
+    agent = Agent(iters=search_depth)
+    
+    print(f"Generating {num_games} self-play games...")
+    
+    for game_idx in range(num_games):
+        if game_idx % 10 == 0:
+            print(f"Game {game_idx}/{num_games}")
+        
+        # Initialize game state
+        from game_state_tuple import get_initial_state
+        state = get_initial_state()
+        
+        # List to store game history
+        game_states = []
+        
+        # Play game until terminal state
+        while not is_terminal(state):
+            print(is_terminal(state))
+            # Store current state
+            game_states.append(state)
+            
+            # Select move using MCTS
+            selected_move = agent.select_move(state)
+            
+            # Apply move
+            state = apply_move(state, selected_move)
+        
+        # Get game winner
+        winner = check_winner(state)
+        
+        # Create training examples
+        for game_state in game_states:
+            current_player = get_current_player(game_state)
+            
+            # Label: 1 if current player won, 0 if lost, 0.5 if tie
+            if winner == 0.5:  # Tie
+                outcome = 0.5
+            else:  # Win or loss
+                outcome = 1.0 if winner == current_player else 0.0
+            
+            # Store state and outcome
+            training_data.append({
+                "state": game_state,
+                "outcome": outcome
+            })
+    
+    # Save training data
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    save_path = os.path.join(save_dir, f"self_play_data_{timestamp}.pkl")
+    
+    with open(save_path, "wb") as f:
+        pickle.dump(training_data, f)
+    
+    print(f"Training data saved to {save_path}")
+    print(f"Total training examples: {len(training_data)}")
+    
+    return save_path
+
+if __name__ == "__main__":
+    generate_self_play_data(num_games=10, search_depth=10, save_dir="training_data")

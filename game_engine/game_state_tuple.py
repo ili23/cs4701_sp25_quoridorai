@@ -13,7 +13,8 @@ BOARD_SIZE = 9
 #   (player_0_fences, player_1_fences),  # Remaining fences for each player
 #   tuple(tuple(row) for row in horizontal_fences),  # Horizontal fences (as tuples of booleans)
 #   tuple(tuple(row) for row in vertical_fences),  # Vertical fences (as tuples of booleans)
-#   current_player  # Current player (0 or 1)
+#   current_player,  # Current player (0 or 1)
+#   move_count  # Number of moves played so far
 # )
 def get_current_player(state):
     return state[4]
@@ -33,11 +34,14 @@ def create_initial_state():
     # Initial player
     current_player = PLAYER_ONE
     
-    return (pawns, fences, h_fences, v_fences, current_player)
+    # Initial move count
+    move_count = 0
+    
+    return (pawns, fences, h_fences, v_fences, current_player, move_count)
 
 def is_fence_between(state, pos1, pos2):
     """Check if there's a fence between two adjacent positions"""
-    _, _, h_fences, v_fences, _ = state
+    _, _, h_fences, v_fences, _, _ = state
     row1, col1 = pos1
     row2, col2 = pos2
     
@@ -84,7 +88,7 @@ def is_fence_between(state, pos1, pos2):
 
 def get_valid_pawn_moves(state, player):
     """Get all valid pawn moves for a player"""
-    pawns, _, h_fences, v_fences, _ = state
+    pawns, _, h_fences, v_fences, _, _ = state
     moves = []
     x, y = pawns[player]
     opponent = 1 - player
@@ -126,7 +130,7 @@ def get_valid_pawn_moves(state, player):
 
 def path_exists(state, player, goal_row):
     """BFS to check if a path exists from player's position to goal row"""
-    pawns, remaining_fences, h_fences, v_fences, _ = state
+    pawns, remaining_fences, h_fences, v_fences, _, _ = state
     
     # Early optimization: only do this check for initial game state
     total_fences_placed = 20 - (remaining_fences[0] + remaining_fences[1])
@@ -170,7 +174,7 @@ def path_exists_for_both_players(state):
 def is_valid_fence_placement(state, position, orientation):
     """Check if a fence placement is valid"""
     row, col = position
-    pawns, _, h_fences, v_fences, _ = state
+    pawns, _, h_fences, v_fences, _, _ = state
     
     # Check boundary conditions
     if not (0 <= row < BOARD_SIZE - 1 and 0 <= col < BOARD_SIZE - 1):
@@ -240,14 +244,14 @@ def is_valid_fence_placement(state, position, orientation):
     temp_v_fences = tuple(tuple(row) for row in v_fences_list)
     
     # Create a temporary state with the fence placed
-    temp_state = (pawns, (0, 0), temp_h_fences, temp_v_fences, 0)  # Fence counts don't matter here
+    temp_state = (pawns, (0, 0), temp_h_fences, temp_v_fences, 0, 0)  # Fence counts don't matter here
     
     # Check if both players still have paths to win
     return path_exists_for_both_players(temp_state)
 
 def get_valid_fence_moves(state, player):
     """Get all valid fence placements for a player"""
-    _, fences, _, _, _ = state
+    _, fences, _, _, _, _ = state
     
     # If player has no fences left, return empty list
     if fences[player] <= 0:
@@ -266,7 +270,7 @@ def get_valid_fence_moves(state, player):
 
 def get_possible_moves(state):
     """Get all possible moves for the current player"""
-    pawns, fences, _, _, current_player = state
+    pawns, fences, _, _, current_player, _ = state
     
     # Get pawn moves
     pawn_moves = get_valid_pawn_moves(state, current_player)
@@ -281,9 +285,12 @@ def get_possible_moves(state):
 def apply_move(state, move):
     """Apply a move and return the new state. 
     Does not modify the original state tuple."""
-    pawns, fences, h_fences, v_fences, current_player = state
+    pawns, fences, h_fences, v_fences, current_player, move_count = state
     pawns = list(pawns)
     fences = list(fences)
+    
+    # Increment move count
+    move_count += 1
     
     if move[0] == "move":
         # Handle pawn move
@@ -295,7 +302,7 @@ def apply_move(state, move):
         fences = tuple(fences)
         
         # Create new state with updated pawn position
-        new_state = (pawns, fences, h_fences, v_fences, 1 - current_player)
+        new_state = (pawns, fences, h_fences, v_fences, 1 - current_player, move_count)
         
         # Check if this results in a win on the new state
         winner = check_winner(new_state)
@@ -332,14 +339,18 @@ def apply_move(state, move):
         fences = tuple(fences)
         
         # Create new state and return
-        new_state = (pawns, fences, h_fences, v_fences, 1 - current_player)
+        new_state = (pawns, fences, h_fences, v_fences, 1 - current_player, move_count)
         return new_state
 
 def check_winner(state):
-    """Check if either player has won the game"""
-    pawns, _, _, _, _ = state
+    """Check if either player has won the game or if there's a tie"""
+    pawns, _, _, _, _, move_count = state
     x0, y0 = pawns[0]
     x1, y1 = pawns[1]
+    
+    # Check for tie (move limit reached)
+    if move_count >= 70:
+        return 0.5  # Return 0.5 to indicate a tie
     
     # Player 0 wins by reaching the bottom row
     if x0 == BOARD_SIZE - 1:
@@ -354,7 +365,7 @@ def check_winner(state):
 
 def print_game_state(state):
     """Print the current game state (board visualization)"""
-    pawns, fences, h_fences, v_fences, current_player = state
+    pawns, fences, h_fences, v_fences, current_player, move_count = state
     
     # ANSI color codes for better visualization
     BLUE = '\033[94m'    # For placed walls
@@ -364,7 +375,9 @@ def print_game_state(state):
     
     print("Current board state:\n")
     winner = check_winner(state)
-    if winner is not None:
+    if winner == 0.5:
+        print(f"{GREEN}Game ended in a tie after {move_count} moves!{RESET}")
+    elif winner is not None:
         print(f"{GREEN}Player {winner} has won the game!{RESET}")
     
     # Pre-compute which grid points have fences passing through them
@@ -432,10 +445,17 @@ def print_game_state(state):
     print(f"Current player: {current_player}")
     print(f"Player 0 fences left: {fences[0]}")
     print(f"Player 1 fences left: {fences[1]}")
+    print(f"Moves played: {move_count}")
     
-    if winner is not None:
+    if winner == 0.5:
+        print(f"{GREEN}Game ended in a tie after {move_count} moves!{RESET}")
+    elif winner is not None:
         print(f"{GREEN}Player {winner} has won the game!{RESET}")
     print()
 
 def is_terminal(state):
     return check_winner(state) is not None
+
+def get_initial_state():
+    """Alias for create_initial_state for better readability"""
+    return create_initial_state()
