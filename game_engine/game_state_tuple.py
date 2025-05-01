@@ -177,9 +177,9 @@ def is_valid_fence_placement(state, position, orientation):
         return False
     
     # For 2-unit long fences, make sure there's space for the full fence
-    if orientation == 'H' and col >= BOARD_SIZE - 2:
+    if orientation == 'H' and col >= BOARD_SIZE - 1:
         return False
-    if orientation == 'V' and row >= BOARD_SIZE - 2:
+    if orientation == 'V' and row >= BOARD_SIZE - 1:
         return False
     
     # Check if fence already exists at the placement position
@@ -376,7 +376,7 @@ def print_game_state(state):
         for col in range(BOARD_SIZE - 1):
             if h_fences[row][col]:
                 h_fence_grid[row][col] = True
-                if col < BOARD_SIZE - 2:  # Mark the extension horizontally (to next column)
+                if col < BOARD_SIZE - 1:  # Mark the extension horizontally (to next column)
                     h_fence_grid[row][col+1] = True
     
     # Mark vertical fences (each fence is 2 units long)
@@ -384,9 +384,12 @@ def print_game_state(state):
         for col in range(BOARD_SIZE - 1):
             if v_fences[row][col]:
                 v_fence_grid[row][col] = True
-                if row < BOARD_SIZE - 2:  # Mark the extension vertically (to next row)
+                if row < BOARD_SIZE - 1:  # Mark the extension vertically (to next row)
                     v_fence_grid[row+1][col] = True
-    
+    # for row in range(BOARD_SIZE):
+    #     print(h_fence_grid[row])
+    # for row in range(BOARD_SIZE):
+    #     print(v_fence_grid[row])
     # Print the board with pawns and fences
     for row in range(BOARD_SIZE):
         # Print pawns and vertical fences
@@ -413,7 +416,7 @@ def print_game_state(state):
         # Print horizontal fences if not at bottom edge
         if row < BOARD_SIZE - 1:
             for col in range(BOARD_SIZE):
-                has_fence = col < BOARD_SIZE - 1 and h_fence_grid[row][col]
+                has_fence = h_fence_grid[row][col]
                 
                 if has_fence:
                     print(f"{BLUE}═══{RESET}", end="")
@@ -434,96 +437,5 @@ def print_game_state(state):
         print(f"{GREEN}Player {winner} has won the game!{RESET}")
     print()
 
-# Example usage
-def example_gameplay():
-    # Create initial state
-    state = create_initial_state()
-    print("Initial state created")
-    print("==============================================")
-    print_game_state(state)
-    
-    # Show some moves at the start
-    possible_moves = get_possible_moves(state)
-    print(f"Number of possible moves at start: {len(possible_moves)}")
-    print(f"First few pawn moves: {[m for m in possible_moves if m[0] == 'move'][:5]}")
-    print(f"First few fence moves: {[m for m in possible_moves if m[0] == 'fence'][:5]}")
-    print("==============================================")
-    
-    # Apply a sequence of moves to test game logic
-    moves = [
-        ("move", (1, 4)),  # Player 0 moves down
-        ("move", (7, 4)),  # Player 1 moves up
-        ("move", (2, 4)),  # Player 0 moves down more
-        ("move", (6, 4)),  # Player 1 moves up more
-        ("fence", (3, 3), "H"),  # Player 0 places horizontal fence (extends to the right)
-        
-        # Place a valid fence
-        ("fence", (1, 1), "V"),  # Player 1 places vertical fence (extends downward)
-        
-        # Player 0 tries to move through a fence (should be invalid)
-        ("move", (3, 3)),
-        
-        # Place another fence that connects with an existing one
-        ("fence", (1, 2), "V"),  # Player 0 places vertical fence
-        
-        # Test jumping over opponent
-        ("move", (5, 4)),  # Player 1 moves up (should now be adjacent to Player 0)
-        ("move", (3, 4)),  # Player 0 tries to move through opponent (should require jumping)
-    ]
-    
-    for i, move in enumerate(moves):
-        print(f"Move {i+1}: Attempting {move}")
-        
-        # Validate move is legal
-        valid_moves = get_possible_moves(state)
-        if move not in valid_moves:
-            print(f"ERROR: Move {move} is not valid!")
-            # Filter valid moves by type to make display clearer
-            if move[0] == "move":
-                valid_moves_of_type = [m for m in valid_moves if m[0] == "move"]
-                print(f"Valid moves: {valid_moves_of_type[:5]}...")
-            else: # fence move
-                valid_moves_of_type = [m for m in valid_moves if m[0] == "fence"]
-                if len(valid_moves_of_type) > 5:
-                    print(f"Valid fence moves: {valid_moves_of_type[:5]}... (and {len(valid_moves_of_type)-5} more)")
-                else:
-                    print(f"Valid fence moves: {valid_moves_of_type}")
-            continue
-            
-        # Apply move
-        state = apply_move(state, move)
-        print_game_state(state)
-        
-        # Check for winner
-        winner = check_winner(state)
-        if winner is not None:
-            print(f"Player {winner} wins!")
-            break
-    
-    # Test fence adjacency and path finding
-    # Place two fences to demonstrate proper fence placement and length
-    for fence_move in [("fence", (5, 5), "H"), ("fence", (6, 5), "V")]:
-        valid_moves = get_possible_moves(state)
-        if fence_move in valid_moves:
-            print(f"Placing fence: {fence_move}")
-            state = apply_move(state, fence_move)
-            print_game_state(state)
-    
-    # Test if paths exist for both players
-    if path_exists_for_both_players(state):
-        print("Both players have a path to their goals")
-    else:
-        print("Warning: At least one player doesn't have a path to their goal")
-        
-    # Show available moves for current player
-    current_moves = get_possible_moves(state)
-    print(f"Current player: {state[4]}")
-    print(f"Number of available moves: {len(current_moves)}")
-    if current_moves:
-        print(f"Sample moves: {current_moves[:5]}")
-
 def is_terminal(state):
     return check_winner(state) is not None
-
-if __name__ == "__main__":
-    example_gameplay() 
