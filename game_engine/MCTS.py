@@ -4,6 +4,7 @@ from queue import Queue
 from collections import deque
 import pickle
 import os
+import json
 from datetime import datetime
 
 from utility import argmax
@@ -336,18 +337,29 @@ def generate_self_play_data(num_games=100, search_depth=50, save_dir="training_d
             else:  # Win or loss
                 outcome = 1.0 if winner == current_player else 0.0
             
-            # Store state and outcome
+            # Store state and outcome as a serializable dict
+            # Convert tuple state to a list for JSON serialization
+            serializable_state = []
+            for item in game_state:
+                if isinstance(item, tuple):
+                    if isinstance(item[0], tuple):  # Handle nested tuples
+                        serializable_state.append([list(x) for x in item])
+                    else:
+                        serializable_state.append(list(item))
+                else:
+                    serializable_state.append(item)
+            
             training_data.append({
-                "state": game_state,
+                "state": serializable_state,
                 "outcome": outcome
             })
     
     # Save training data
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_path = os.path.join(save_dir, f"self_play_data_{timestamp}.pkl")
+    save_path = os.path.join(save_dir, f"self_play_data_{timestamp}.json")
     
-    with open(save_path, "wb") as f:
-        pickle.dump(training_data, f)
+    with open(save_path, "w") as f:
+        json.dump(training_data, f, indent=2)
     
     print(f"Training data saved to {save_path}")
     print(f"Total training examples: {len(training_data)}")
