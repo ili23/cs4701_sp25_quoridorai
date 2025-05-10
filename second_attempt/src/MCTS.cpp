@@ -45,6 +45,8 @@ Gamestate MCTS::bestMoveApply() {
       // b.displayBoard();
       // std::cout << c->w << "  " << c->n << std::endl;
 
+      std::cout << "in btestMovePPlaqy if statment" << std::endl;
+
       score = c->w / c->n;
       new_root = c;
     }
