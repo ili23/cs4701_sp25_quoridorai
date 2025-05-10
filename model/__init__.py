@@ -1,2 +1,3 @@
-from model.nn import QuoridorNNTrainer, QuoridorNN, QuoridorFeatureExtractor
-from model.nn_mcts import NNMCTSAgent 
+from model.cnn import QuoridorFeatureExtractor, QuoridorDataset, QuoridorCNN, QuoridorLightningModule
+from model.trainer import QuoridorTrainer
+from model.evaluator import QuoridorEvaluator
