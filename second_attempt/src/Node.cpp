@@ -9,6 +9,8 @@
 constexpr float c = 0;
 
 Node::Node(Gamestate &g) {
+  w = 0;
+  n = 0;
   state = g;
   childrenExpanded = false;
   terminal = state.terminal();
@@ -16,6 +18,9 @@ Node::Node(Gamestate &g) {
 }
 
 Node::Node(Gamestate &g, std::shared_ptr<Node> p) {
+  w = 0;
+  n = 0;
+
   state = g;
   childrenExpanded = false;
   terminal = state.terminal();
