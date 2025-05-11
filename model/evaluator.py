@@ -3,9 +3,11 @@ import random
 import csv
 from tqdm import tqdm
 import sys
-# Add the parent directory to the path so we can import from game_engine
 
+# Add the parent directory to the path so we can import modules properly
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now import modules after path is configured
 from game_engine.game_state_tuple import (
     create_initial_state,
     get_possible_moves,
@@ -15,13 +17,14 @@ from game_engine.game_state_tuple import (
     get_current_player
 )
 
-from model.cnn import QuoridorLightningModule
+# Local import - use relative import
+from .cnn import QuoridorLightningModule
 
 
 class QuoridorEvaluator:
     """Class for evaluating the trained Quoridor neural network."""
     
-    def __init__(self, model_path: str = None):
+    def __init__(self, model_path = None):
         if model_path is None:
             # Look for the final model in the checkpoints directory
             checkpoint_dir = os.path.join(os.path.dirname(__file__), "checkpoints")

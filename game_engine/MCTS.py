@@ -178,7 +178,7 @@ class GameTree:
         ucb1 = (self.state_cache[self.state]["w"] / self.state_cache[self.state]["n"]) + \
                c * np.sqrt(np.log(self.state_cache[self.parent.state]["n"]) / self.state_cache[self.state]["n"])
         
-        return ucb1 
+        return ucb1
     
     def expand(self):
         if is_terminal(self.state):

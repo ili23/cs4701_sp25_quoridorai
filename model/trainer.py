@@ -2,13 +2,15 @@ import os
 import random
 import torch
 import lightning as pl
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from tqdm import tqdm
 from datetime import datetime
 
-# Add the parent directory to the path so we can import from game_engine
+# Add the parent directory to the path so we can import modules properly
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import game engine modules after path is configured
 from game_engine.game_state_tuple import (
     create_initial_state,
     get_possible_moves,
@@ -18,60 +20,94 @@ from game_engine.game_state_tuple import (
     get_current_player
 )
 
+# Local imports - use relative imports
 from model.cnn import QuoridorLightningModule
 from model.data_loader import QuoridorDataModule
 
+# Set default model and checkpoint paths
+DEFAULT_MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "checkpoints")
+DEFAULT_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "quoridor_cnn_final.ckpt")
 
 class QuoridorTrainer:
-    """Class for training Quoridor neural network using PyTorch Lightning."""
+    """
+    Trainer class for Quoridor CNN using PyTorch Lightning.
     
-    def __init__(self, data_path: str = None, batch_size: int = 32, max_epochs: int = 100):
+    This class encapsulates the training process including:
+    - Setting up the model
+    - Loading training data
+    - Configuring callbacks like checkpointing and early stopping
+    - Running training & validation
+    """
+    
+    def __init__(self, data_path = None, batch_size = 32, max_epochs = 100):
         self.data_path = data_path
         self.batch_size = batch_size
         self.max_epochs = max_epochs
         
-        # Create data module using the QuoridorDataModule
+        # Create model & data module
+        self.model = None
+        self.data_module = None
+        
+        # Make sure checkpoint directory exists
+        os.makedirs(DEFAULT_MODEL_DIR, exist_ok=True)
+    
+    def setup(self):
+        """Set up the model and data module for training."""
+        # Create model
+        self.model = QuoridorLightningModule(learning_rate=0.001)
+        
+        # Create data module
         self.data_module = QuoridorDataModule(
-            data_path=data_path,
-            batch_size=batch_size,
-            val_split=0.2,    # 20% validation split
+            data_path=self.data_path,
+            batch_size=self.batch_size,
         )
-        
-        # Create CNN model
-        self.model = QuoridorLightningModule()
-        
-        # Setup checkpoint directory
-        self.checkpoint_dir = os.path.join(os.path.dirname(__file__), "checkpoints")
-        os.makedirs(self.checkpoint_dir, exist_ok=True)
     
     def train(self):
-        """Train the model using PyTorch Lightning."""
-        # Define checkpoint callback
+        """Train the model and save the final checkpoint."""
+        # First, make sure setup has been called
+        if self.model is None or self.data_module is None:
+            self.setup()
+        
+        # Create callbacks
         checkpoint_callback = ModelCheckpoint(
-            dirpath=self.checkpoint_dir,
-            filename='quoridor_cnn-{epoch:02d}-{val_loss:.4f}',
+            dirpath=DEFAULT_MODEL_DIR,
+            filename='quoridor-cnn-epoch{epoch:02d}-val_loss{val_loss:.4f}',
             save_top_k=3,
             monitor='val_loss',
+            mode='min'
+        )
+        
+        early_stop_callback = EarlyStopping(
+            monitor='val_loss',
+            patience=10,
             mode='min'
         )
         
         # Create trainer
         trainer = pl.Trainer(
             max_epochs=self.max_epochs,
-            callbacks=[checkpoint_callback],
-            default_root_dir=self.checkpoint_dir
+            callbacks=[checkpoint_callback, early_stop_callback],
+            default_root_dir=DEFAULT_MODEL_DIR
         )
         
-        # Train the model using the data module
-        trainer.fit(model=self.model, datamodule=self.data_module)
+        # Train the model
+        trainer.fit(self.model, self.data_module)
         
-        # Save final model
-        final_model_path = os.path.join(self.checkpoint_dir, "quoridor_cnn_final.ckpt")
-        trainer.save_checkpoint(final_model_path)
-        print(f"Final model saved to {final_model_path}")
+        # Save the final model
+        trainer.save_checkpoint(DEFAULT_MODEL_PATH)
         
-        return self.model
-    
+        print(f"Training complete! Final model saved to {DEFAULT_MODEL_PATH}")
+        
+        return {
+            "best_model_path": checkpoint_callback.best_model_path,
+            "final_model_path": DEFAULT_MODEL_PATH
+        }
+
 if __name__ == "__main__":
-    trainer = QuoridorTrainer(data_path="model/training_data/fake_training_data.csv", batch_size=32, max_epochs=5)
-    trainer.train()
+    trainer = QuoridorTrainer(
+        data_path="./model/training_data/fake_training_data.csv",
+        batch_size=32,
+        max_epochs=5
+    )
+    
+    results = trainer.train()

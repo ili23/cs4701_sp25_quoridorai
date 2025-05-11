@@ -1,22 +1,17 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 import sys
 import os
-import csv
-from torch.utils.data import Dataset
-import lightning as pl
-from typing import List, Tuple
-from datetime import datetime
 
-# Add the parent directory to the path so we can import from game_engine
+# Add parent directory to path to ensure imports work
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import lightning as pl
 from game_engine.game_state_tuple import BOARD_SIZE
 
-# Import the dataset class for feature extraction
+# Local imports - use relative import
 from model.data_loader import QuoridorDataset
-
 
 class QuoridorCNN(nn.Module):
     """
@@ -28,27 +23,18 @@ class QuoridorCNN(nn.Module):
     
     def __init__(self, grid_size=17):
         super(QuoridorCNN, self).__init__()
-        
-        # Convolutional layers - updated for 4 input channels
+        # Convolutional layers
         self.conv1 = nn.Conv2d(in_channels=4, out_channels=32, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        
-        # Calculate the size after convolutions
         conv_output_size = 64 * grid_size * grid_size
-        
-        # Fully connected layers for board features
+
+        # Fully connected layers
         self.fc_board1 = nn.Linear(conv_output_size, 512)
         self.fc_board2 = nn.Linear(512, 256)
-        
-        # Fully connected layer for fence counts
         self.fc_fence = nn.Linear(2, 32)
-        
-        # Fully connected layer for move count
         self.fc_move_count = nn.Linear(1, 16)
-        
-        # Combined fully connected layers
-        self.fc_combined = nn.Linear(256 + 32 + 16, 128)  # Updated to include move count features
+        self.fc_combined = nn.Linear(256 + 32 + 16, 128)
         self.fc_output = nn.Linear(128, 1)
         
         # Batch normalization layers
@@ -63,14 +49,8 @@ class QuoridorCNN(nn.Module):
         self.dropout = nn.Dropout(0.3)
     
     def forward(self, x):
-        # Unpack input: x is a tuple (board_tensor, fence_counts, move_count)
-        if len(x) == 3:
-            board_tensor, fence_counts, move_count = x
-        else:
-            # Backward compatibility: handle case where move_count is not provided
-            board_tensor, fence_counts = x
-            # Create a dummy move count tensor (zeros)
-            move_count = torch.zeros_like(fence_counts[:, :1])
+        # x is a tuple (board_tensor, fence_counts, move_count)
+        board_tensor, fence_counts, move_count = x
         
         # Process board with convolutional layers
         x_board = F.relu(self.bn1(self.conv1(board_tensor)))
@@ -104,13 +84,11 @@ class QuoridorCNN(nn.Module):
 
 
 class QuoridorLightningModule(pl.LightningModule):
-    """PyTorch Lightning module for training Quoridor neural network."""
     
     def __init__(self, learning_rate=0.001):
         super(QuoridorLightningModule, self).__init__()
-        self.dataset = QuoridorDataset()  # Only used for feature extraction
+        self.dataset = QuoridorDataset()
         self.learning_rate = learning_rate
-        # Initialize model with 17x17 grid size
         self.model = QuoridorCNN(grid_size=2 * BOARD_SIZE - 1)
         self.save_hyperparameters()
     
@@ -120,16 +98,14 @@ class QuoridorLightningModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         features, targets = batch
         outputs = self(features)
-        loss = F.mse_loss(outputs, targets)  # Use MSE loss for regression between -1 and 1
-        
+        loss = F.mse_loss(outputs, targets) 
         self.log('train_loss', loss, prog_bar=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
         features, targets = batch
         outputs = self(features)
-        loss = F.mse_loss(outputs, targets)  # Use MSE loss for regression between -1 and 1
-        
+        loss = F.mse_loss(outputs, targets)
         self.log('val_loss', loss, prog_bar=True)
         return loss
     

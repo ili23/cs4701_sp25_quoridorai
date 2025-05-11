@@ -24,7 +24,6 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> game_state_to_tensors(
     const int moves = std::get<5>(state);
     
     // Create a 4x17x17 tensor to represent the board state
-    // Channels: 0=player0, 1=player1, 2=horizontal fences, 3=vertical fences
     torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
     
     // Set player positions

@@ -7,9 +7,11 @@ import os
 import csv
 from torch.utils.data import Dataset, DataLoader, random_split
 import lightning as pl
-from typing import List, Tuple, Optional
-from datetime import datetime
+
+# Add parent directory to path to ensure imports work
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import from game engine after path is set up
 from game_engine.game_state_tuple import (
     BOARD_SIZE, 
     PLAYER_ONE, 
@@ -20,7 +22,7 @@ from game_engine.game_state_tuple import (
 class QuoridorDataset(Dataset):
     """Dataset for Quoridor game states and their evaluation targets."""
     
-    def __init__(self, data_path: str = None, states: List = None, targets: List = None):
+    def __init__(self, data_path = None, states = None, targets = None):
         self.board_size = BOARD_SIZE
         self.grid_size = 2 * self.board_size - 1  # 17x17 for standard 9x9 board
         
@@ -144,7 +146,7 @@ class QuoridorDataset(Dataset):
         
         return board_tensor, fence_counts, move_count_tensor
     
-    def load_from_csv(self, data_path: str):
+    def load_from_csv(self, data_path):
         """Load game states and targets from a CSV file."""
         self.states = []
         self.targets = []
@@ -204,7 +206,6 @@ class QuoridorDataset(Dataset):
                 # Construct the complete state tuple
                 state = (pawns, fences, h_fences, v_fences, current_player, move_count)
                 self.states.append(state)
-    
     def __len__(self):
         return len(self.states)
     
@@ -229,13 +230,13 @@ class QuoridorDataModule(pl.LightningDataModule):
     
     def __init__(
         self,
-        data_path: str = None,
-        states: List = None,
-        targets: List = None,
-        batch_size: int = 32,
-        val_split: float = 0.2,
-        num_workers: int = 4,
-        seed: int = 42
+        data_path = None,
+        states = None,
+        targets = None,
+        batch_size = 32,
+        val_split = 0.2,
+        num_workers = 4,
+        seed = 42
     ):
         super().__init__()
         self.data_path = data_path
@@ -247,7 +248,7 @@ class QuoridorDataModule(pl.LightningDataModule):
         self.seed = seed
         
     
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage = None):
         """
         Load and split the data.
         This method is called by every accelerator process.
