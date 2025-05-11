@@ -1,5 +1,7 @@
 */__pycache__
 */venv/*
+*/build/*
 */training_data/*
 */venv/*
 */checkpoints/*
+.DS_Store
