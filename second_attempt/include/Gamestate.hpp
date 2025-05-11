@@ -5,6 +5,7 @@
 #include <functional>  // For std::hash
 #include <memory>
 #include <utility>
+#include <fstream>
 #include <vector>
 
 constexpr int kBoardSize = 9;
@@ -30,6 +31,8 @@ class Move {
 class Gamestate {
  public:
   Gamestate();
+
+  void write_csv(ofstream &f);
 
   static torch::jit::script::Module module;
 

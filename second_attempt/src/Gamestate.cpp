@@ -7,6 +7,11 @@
 
 torch::jit::script::Module Gamestate::module;
 
+void Gamestate::write_csv(ofstream& f) {
+  f << p1Pos.first << ", " << p1Pos.second << ", " << p2Pos.first << ", "
+    << p2Pos.second << std::endl;
+}
+
 float Gamestate::model_evaluate(Gamestate& g) {
   using namespace torch::indexing;
 

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 
+
 #include "MCTS.hpp"
 
 int main(int argc, const char* argv[]) {
@@ -34,6 +35,15 @@ int main(int argc, const char* argv[]) {
   }
 
   // Write positions to a csv
+
+  std::ofstream myfile;
+  myfile.open("gamestate.csv");
+
+  for (auto gs : positions) {
+    gs.write_csv(myfile);
+  }
+
+  myfile.close();
 
   return 0;
 };
