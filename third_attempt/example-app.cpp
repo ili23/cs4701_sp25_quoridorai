@@ -1,4 +1,4 @@
-#include <torch/script.h>  // One-stop header.
+#include <torch/script.h>
 
 #include <iostream>
 #include <memory>
@@ -20,16 +20,17 @@ int main(int argc, const char* argv[]) {
 
   std::cout << "ok\n";
 
-
   // Create your input tensors
   torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
   torch::Tensor fence_counts = torch::zeros({1, 2});
   torch::Tensor move_count = torch::zeros({1, 1});
 
   // Pack them into an inner tuple
-  auto inner_tuple = torch::ivalue::Tuple::create({board_tensor, fence_counts, move_count});
+  auto inner_tuple =
+      torch::ivalue::Tuple::create({board_tensor, fence_counts, move_count});
 
-  // Then wrap that in an outer tuple to match the Python ( (a, b, c), ) structure
+  // Then wrap that in an outer tuple to match the Python ( (a, b, c), )
+  // structure
   std::vector<torch::IValue> inputs;
   inputs.push_back(inner_tuple);
 
@@ -40,6 +41,4 @@ int main(int argc, const char* argv[]) {
   std::cout << output << std::endl;
 
   std::cout << "ok\n";
-
-
 }

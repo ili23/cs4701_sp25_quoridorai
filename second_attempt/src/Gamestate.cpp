@@ -1,22 +1,16 @@
 #include "Gamestate.hpp"
 
+#include <torch/script.h>
+
 #include <iostream>
 #include <queue>
 
 float evaluate(Gamestate& g) {
   if (g.terminal()) {
-    return g.result() == 1 ? 1 : 0;
+    return g.result() == 1 ? 1 : -1;
   }
+
   return 0.5;
-
-  if (g.terminal()) {
-    return g.p1Turn ? g.result() : 1 - g.result();
-  }
-  if (g.p1Turn) {
-    return ((float)g.p1Pos.first) / kBoardSize * 0.5 + 0.25;
-  }
-
-  return 1 - (((float)g.p1Pos.first) / kBoardSize * 0.5 + 0.25);
 }
 
 Move::Move(int x, int y) {

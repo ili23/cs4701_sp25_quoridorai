@@ -1,5 +1,7 @@
 #pragma once
 
+#include <torch/script.h>
+
 #include <functional>  // For std::hash
 #include <memory>
 #include <utility>
@@ -26,6 +28,10 @@ class Move {
 };
 
 class Gamestate {
+  static torch::jit::script::Module module;
+
+  static float evaluate(Gamestate& g);
+
  public:
   Gamestate();
 
