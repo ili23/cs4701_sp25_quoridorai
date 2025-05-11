@@ -57,13 +57,7 @@ class QuoridorDataset(Dataset):
                 - Fence counts [current_player_fences, opponent_fences]
                 - Move count [move_count]
         """
-        # Check if we have 6 elements in the state tuple (includes move_count)
-        if len(state) >= 6:
-            pawns, fences, h_fences, v_fences, current_player, move_count = state
-        else:
-            # Backward compatibility with older state format
-            pawns, fences, h_fences, v_fences, current_player = state
-            move_count = 0  # Default value if not provided
+        pawns, fences, h_fences, v_fences, current_player, move_count = state
         
         # Determine if we need to flip the perspective
         flip_perspective = standardize_perspective and current_player == PLAYER_TWO
@@ -87,10 +81,12 @@ class QuoridorDataset(Dataset):
         current_row, current_col = pawns[current_idx]
         opponent_row, opponent_col = pawns[opponent_idx]
         
-        # If flipping perspective, invert the row indices
+        # If flipping perspective, invert both row and column indices
         if flip_perspective:
             current_row = self.board_size - 1 - current_row
             opponent_row = self.board_size - 1 - opponent_row
+            current_col = self.board_size - 1 - current_col
+            opponent_col = self.board_size - 1 - opponent_col
         
         # Convert to 17x17 grid coordinates (multiply by 2)
         grid_current_row, grid_current_col = current_row * 2, current_col * 2
