@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--self-play', action='store_true', help='Train with self-play')
     parser.add_argument('--episodes', type=int, default=100, help='Number of episodes for self-play training')
     parser.add_argument('--model', type=str, help='Path to model for evaluation')
-    parser.add_argument('--data', type=str, help='Path to training data JSON file')
+    parser.add_argument('--data', type=str, help='Path to training data CSV file')
     parser.add_argument('--batch-size', type=int, default=32, help='Batch size for training')
     parser.add_argument('--epochs', type=int, default=100, help='Maximum number of epochs')
     parser.add_argument('--eval-games', type=int, default=100, help='Number of games to play for evaluation')
@@ -39,10 +39,22 @@ def main():
     
     # Find training data
     data_path = args.data
-    if not data_path and os.path.exists(os.path.join(os.path.dirname(__file__), "training_data", "self_play_data_20250501_180949.json")):
-        data_path = os.path.join(os.path.dirname(__file__), "training_data", "self_play_data_20250501_180949.json")
+    if not data_path:
+        # Look for CSV files
+        training_dir = os.path.join(os.path.dirname(__file__), "training_data")
+        csv_files = [f for f in os.listdir(training_dir) if f.endswith('.csv')] if os.path.exists(training_dir) else []
+        
+        if csv_files:
+            # Use the most recent CSV file (assuming filenames contain timestamps)
+            data_path = os.path.join(training_dir, sorted(csv_files)[-1])
+        else:
+            print("No CSV training data files found.")
     
     if args.train:
+        if not data_path:
+            print("Error: No training data file specified or found. Please provide a CSV file with --data argument.")
+            return
+        
         print(f"Starting CNN training with data from {data_path}...")
         start_time = time.time()
         trainer = QuoridorTrainer(
@@ -135,7 +147,7 @@ def main():
             # Save comparison results
             evaluator.save_evaluation_results(
                 results, 
-                filename=f"comparison_results.json"
+                filename=f"comparison_results.csv"
             )
         else:
             print("No baseline model found for comparison. Please train multiple CNN models first.")
@@ -147,7 +159,7 @@ def main():
         print("  --evaluate           Evaluate the CNN model")
         print("  --compare            Compare with a baseline model")
         print("\nExamples:")
-        print("  python -m model.train_and_eval --train --data model/training_data/self_play_data_20250501_180949.json")
+        print("  python -m model.train_and_eval --train --data model/training_data/self_play_data_20250501_180949.csv")
         print("  python -m model.train_and_eval --self-play --episodes 100")
         print("  python -m model.train_and_eval --evaluate --model model/checkpoints/quoridor_cnn_final.ckpt")
         print("  python -m model.train_and_eval --compare --baseline-model model/checkpoints/quoridor_cnn_epoch10.ckpt")

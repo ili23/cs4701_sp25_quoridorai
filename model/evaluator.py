@@ -1,6 +1,6 @@
 import os
 import random
-import json
+import csv
 from tqdm import tqdm
 import sys
 # Add the parent directory to the path so we can import from game_engine
@@ -96,17 +96,23 @@ class QuoridorEvaluator:
         return win_rate
     
     def save_evaluation_results(self, results, filename=None):
-        """Save evaluation results to a file."""
+        """Save evaluation results to a CSV file."""
         if filename is None:
-            filename = "evaluation_results_cnn.json"
+            filename = "evaluation_results_cnn.csv"
             
         output_dir = os.path.join(os.path.dirname(__file__), "checkpoints")
         os.makedirs(output_dir, exist_ok=True)
         
         output_path = os.path.join(output_dir, filename)
         
-        with open(output_path, 'w') as f:
-            json.dump(results, f, indent=2)
+        # Write results to CSV file
+        with open(output_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            
+            # Write header and data rows
+            writer.writerow(['metric', 'value'])
+            for key, value in results.items():
+                writer.writerow([key, value])
         
         print(f"Evaluation results saved to {output_path}")
     

@@ -4,10 +4,11 @@ import torch.nn.functional as F
 import numpy as np
 import sys
 import os
-import json
+import csv
 from torch.utils.data import Dataset
 import lightning as pl
 from typing import List, Tuple
+from datetime import datetime
 
 # Add the parent directory to the path so we can import from game_engine
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -188,21 +189,71 @@ class QuoridorDataset(Dataset):
             self.targets = []
     
     def load_from_file(self, data_path: str):
-        """Load game states and targets from a JSON file."""
-        with open(data_path, 'r') as f:
-            data = json.load(f)
-            
+        """Load game states and targets from a CSV file."""
+        if not data_path.endswith('.csv'):
+            raise ValueError(f"Unsupported file format. Expected CSV file, got: {data_path}")
+        self.load_from_csv(data_path)
+    
+    def load_from_csv(self, data_path: str):
+        """Load game states and targets from a CSV file."""
         self.states = []
         self.targets = []
         
-        for item in data:
-            self.states.append(tuple(item['state']))
-            # Convert targets from [0, 1] to [-1, 1] if necessary
-            target = item['target']
-            if 0 <= target <= 1:
-                # Assume old format (0 to 1) and convert
-                target = target * 2 - 1
-            self.targets.append(target)
+        with open(data_path, 'r', newline='') as f:
+            reader = csv.reader(f)
+            headers = next(reader)  # Read header row
+            
+            for row in reader:
+                # Extract the target value (last column)
+                target = float(row[-1])
+                # Store target directly since it's already in the -1 to 1 range
+                self.targets.append(target)
+                
+                # Extract game state components
+                # Parse player positions (using pipe separator)
+                player1_coords = row[0].split('|')
+                player2_coords = row[1].split('|')
+                player1_pawn = (int(player1_coords[0]), int(player1_coords[1]))
+                player2_pawn = (int(player2_coords[0]), int(player2_coords[1]))
+                pawns = (player1_pawn, player2_pawn)
+                
+                # Parse numerical values
+                num_walls_p1 = int(row[2])
+                num_walls_p2 = int(row[3])
+                fences = (num_walls_p1, num_walls_p2)
+                
+                move_count = int(row[4])
+                current_player = int(row[5])
+                
+                # Extract horizontal walls (8x8 grid)
+                h_fences = []
+                for row_idx in range(8):
+                    h_row = []
+                    for col_idx in range(8):
+                        # Each horizontal wall column is at index 6+col_idx in the CSV row
+                        # Each column contains 8 wall values separated by |
+                        # We need the value at position row_idx in this column
+                        wall_values = row[6 + col_idx].split('|')
+                        h_row.append(bool(int(wall_values[row_idx])))
+                    h_fences.append(tuple(h_row))
+                h_fences = tuple(h_fences)
+                
+                # Extract vertical walls (8x8 grid)
+                v_fences = []
+                for row_idx in range(8):
+                    v_row = []
+                    for col_idx in range(8):
+                        # Each vertical wall column is at index 14+col_idx in the CSV row
+                        # Each column contains 8 wall values separated by |
+                        # We need the value at position row_idx in this column
+                        wall_values = row[14 + col_idx].split('|')
+                        v_row.append(bool(int(wall_values[row_idx])))
+                    v_fences.append(tuple(v_row))
+                v_fences = tuple(v_fences)
+                
+                # Construct the complete state tuple
+                state = (pawns, fences, h_fences, v_fences, current_player, move_count)
+                self.states.append(state)
     
     def __len__(self):
         return len(self.states)
@@ -224,6 +275,87 @@ class QuoridorDataset(Dataset):
         for state, target in game_data:
             self.states.append(state)
             self.targets.append(target)
+    
+    def save_to_csv(self, file_path: str):
+        """Save the dataset to a CSV file."""
+        if not file_path:
+            # Generate a filename with timestamp if not provided
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            file_path = f"training_data/dataset_{timestamp}.csv"
+        
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        with open(file_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            
+            # Write header row
+            header = [
+                'player1_pawn',
+                'player2_pawn',
+                'num_walls_player1', 'num_walls_player2',
+                'move_count', 'current_player'
+            ]
+            
+            # Add horizontal wall headers
+            for i in range(8):
+                header.append(f'h_wall_col{i}')
+            
+            # Add vertical wall headers
+            for i in range(8):
+                header.append(f'v_wall_col{i}')
+            
+            # Add outcome header
+            header.append('outcome')
+            
+            writer.writerow(header)
+            
+            # Write data rows
+            for i in range(len(self.states)):
+                state = self.states[i]
+                target = self.targets[i]
+                
+                # Extract components from state tuple
+                pawns, fences, h_fences, v_fences, current_player, move_count = state
+                
+                # Format pawn positions using pipe separator
+                player1_pawn = f"{pawns[0][0]}|{pawns[0][1]}"
+                player2_pawn = f"{pawns[1][0]}|{pawns[1][1]}"
+                
+                # Create row for CSV with basic features
+                row = [
+                    player1_pawn,            # Player 1 pawn position as "row|col"
+                    player2_pawn,            # Player 2 pawn position as "row|col"
+                    fences[0], fences[1],    # Wall counts
+                    move_count, current_player # Move count and current player
+                ]
+                
+                # Format horizontal walls - 8 columns, each with 8 values separated by |
+                for col in range(8):
+                    h_wall_col = []
+                    for row_idx in range(8):
+                        # Get wall value (0 or 1) for this position
+                        wall_value = 1 if h_fences[row_idx][col] else 0
+                        h_wall_col.append(str(wall_value))
+                    # Join values with | and add to row
+                    row.append('|'.join(h_wall_col))
+                
+                # Format vertical walls - 8 columns, each with 8 values separated by |
+                for col in range(8):
+                    v_wall_col = []
+                    for row_idx in range(8):
+                        # Get wall value (0 or 1) for this position
+                        wall_value = 1 if v_fences[row_idx][col] else 0
+                        v_wall_col.append(str(wall_value))
+                    # Join values with | and add to row
+                    row.append('|'.join(v_wall_col))
+                
+                # Add outcome (target value already in -1 to 1 range)
+                row.append(target)
+                
+                writer.writerow(row)
+        
+        print(f"Dataset saved to {file_path}")
+        return file_path
 
 
 class QuoridorCNN(nn.Module):

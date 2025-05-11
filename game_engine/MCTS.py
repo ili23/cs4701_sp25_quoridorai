@@ -4,12 +4,11 @@ from queue import Queue
 from collections import deque
 import pickle
 import os
-import json
+import csv
 from datetime import datetime
 
 from utility import argmax
-from game_state_tuple import get_possible_moves, apply_move, is_terminal, check_winner, get_current_player, BOARD_SIZE, is_fence_between
-
+from game_state_tuple import get_possible_moves, apply_move, is_terminal, check_winner, get_current_player, BOARD_SIZE, is_fence_between, print_game_state
 POSSIBLE_MOVES = {}
 SHORTEST_PATHS = {}
 def access_cache_or_update(state):
@@ -280,7 +279,7 @@ class Agent:
     
 def generate_self_play_data(num_games=100, search_depth=50, save_dir="training_data"):
     """
-    Generate training data from self-play games.
+    Generate training data from self-play games in CSV format.
     
     Args:
         num_games: Number of self-play games to generate
@@ -314,8 +313,8 @@ def generate_self_play_data(num_games=100, search_depth=50, save_dir="training_d
         
         # Play game until terminal state
         while not is_terminal(state):
-            print(is_terminal(state))
             # Store current state
+            print_game_state(state)
             game_states.append(state)
             
             # Select move using MCTS
@@ -333,33 +332,81 @@ def generate_self_play_data(num_games=100, search_depth=50, save_dir="training_d
             
             # Label: 1 if current player won, 0 if lost, 0.5 if tie
             if winner == 0.5:  # Tie
-                outcome = 0.5
+                outcome = 0.0  # Draw is 0 in the -1 to 1 scale
             else:  # Win or loss
-                outcome = 1.0 if winner == current_player else 0.0
+                outcome = 1.0 if winner == current_player else -1.0  # Win is 1, loss is -1
             
-            # Store state and outcome as a serializable dict
-            # Convert tuple state to a list for JSON serialization
-            serializable_state = []
-            for item in game_state:
-                if isinstance(item, tuple):
-                    if isinstance(item[0], tuple):  # Handle nested tuples
-                        serializable_state.append([list(x) for x in item])
-                    else:
-                        serializable_state.append(list(item))
-                else:
-                    serializable_state.append(item)
+            # Extract data for CSV format
+            pawns, fences, h_fences, v_fences, current_player, move_count = game_state
+            player1_pawn_pos = f"{pawns[0][0]}|{pawns[0][1]}"  # Format as "row|col"
+            player2_pawn_pos = f"{pawns[1][0]}|{pawns[1][1]}"  # Format as "row|col"
+            num_walls_p1 = fences[0]     # Remaining walls for player 1
+            num_walls_p2 = fences[1]     # Remaining walls for player 2
             
-            training_data.append({
-                "state": serializable_state,
-                "outcome": outcome
-            })
+            # Create a row for the CSV with basic features
+            csv_row = [
+                player1_pawn_pos,      # Player 1 pawn position as "row|col"
+                player2_pawn_pos,      # Player 2 pawn position as "row|col"
+                num_walls_p1,          # Number of walls player 1
+                num_walls_p2,          # Number of walls player 2
+                move_count,            # Number of moves
+                current_player,        # Current player to move
+            ]
+            
+            # Format horizontal walls - 8 columns, each with 8 values separated by |
+            for col in range(8):
+                h_wall_col = []
+                for row in range(8):
+                    # Get wall value (0 or 1) for this position
+                    wall_value = 1 if h_fences[row][col] else 0
+                    h_wall_col.append(str(wall_value))
+                # Join values with | and add to row
+                csv_row.append('|'.join(h_wall_col))
+            
+            # Format vertical walls - 8 columns, each with 8 values separated by |
+            for col in range(8):
+                v_wall_col = []
+                for row in range(8):
+                    # Get wall value (0 or 1) for this position
+                    wall_value = 1 if v_fences[row][col] else 0
+                    v_wall_col.append(str(wall_value))
+                # Join values with | and add to row
+                csv_row.append('|'.join(v_wall_col))
+            
+            # Add outcome as the target value
+            csv_row.append(outcome)
+            
+            training_data.append(csv_row)
     
-    # Save training data
+    # Save training data to CSV
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    save_path = os.path.join(save_dir, f"self_play_data_{timestamp}.json")
+    save_path = os.path.join(save_dir, f"self_play_data_{timestamp}.csv")
     
-    with open(save_path, "w") as f:
-        json.dump(training_data, f, indent=2)
+    with open(save_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        
+        # Write header row
+        header = [
+            'player1_pawn',
+            'player2_pawn',
+            'num_walls_player1', 'num_walls_player2',
+            'move_count', 'current_player'
+        ]
+        
+        # Add horizontal wall headers
+        for i in range(8):
+            header.append(f'h_wall_col{i}')
+        
+        # Add vertical wall headers
+        for i in range(8):
+            header.append(f'v_wall_col{i}')
+        
+        # Add outcome header
+        header.append('outcome')
+        
+        # Write header and data
+        writer.writerow(header)
+        writer.writerows(training_data)
     
     print(f"Training data saved to {save_path}")
     print(f"Total training examples: {len(training_data)}")
@@ -367,4 +414,4 @@ def generate_self_play_data(num_games=100, search_depth=50, save_dir="training_d
     return save_path
 
 if __name__ == "__main__":
-    generate_self_play_data(num_games=10, search_depth=10, save_dir="training_data")
+    generate_self_play_data(num_games=1, search_depth=10, save_dir="training_data")

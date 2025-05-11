@@ -107,24 +107,29 @@ def get_valid_pawn_moves(state, player):
         dir_x = opp_x - x
         dir_y = opp_y - y
         
-        # Check straight jump
+        # Calculate the position for a straight jump
         jump_x, jump_y = opp_x + dir_x, opp_y + dir_y
-        if 0 <= jump_x < BOARD_SIZE and 0 <= jump_y < BOARD_SIZE:
-            if not is_fence_between(state, (opp_x, opp_y), (jump_x, jump_y)):
-                moves.append(("move", (jump_x, jump_y)))
-            else:
-                # Straight jump is blocked, check diagonal jumps
-                for d_x, d_y in DIRECTIONS:
-                    # Only consider actual diagonal jumps (perpendicular to straight jump)
-                    if (d_x != dir_x or d_y != dir_y) and (d_x != -dir_x or d_y != -dir_y):
-                        diag_x, diag_y = opp_x + d_x, opp_y + d_y
-                        # Check if diagonal position is valid and not occupied by the player
-                        if ((diag_x, diag_y) != (x, y) and 
-                            0 <= diag_x < BOARD_SIZE and 
-                            0 <= diag_y < BOARD_SIZE):
-                            # Check if there's no fence blocking the diagonal move
-                            if not is_fence_between(state, (opp_x, opp_y), (diag_x, diag_y)):
-                                moves.append(("move", (diag_x, diag_y)))
+        
+        # Check if straight jump is valid
+        straight_jump_valid = (0 <= jump_x < BOARD_SIZE and 
+                              0 <= jump_y < BOARD_SIZE and 
+                              not is_fence_between(state, (opp_x, opp_y), (jump_x, jump_y)))
+        
+        if straight_jump_valid:
+            moves.append(("move", (jump_x, jump_y)))
+        else:
+            # Straight jump is blocked or out of bounds, check diagonal jumps
+            for d_x, d_y in DIRECTIONS:
+                # Only consider actual diagonal jumps (perpendicular to straight jump)
+                if (d_x != dir_x or d_y != dir_y) and (d_x != -dir_x or d_y != -dir_y):
+                    diag_x, diag_y = opp_x + d_x, opp_y + d_y
+                    # Check if diagonal position is valid and not occupied by the player
+                    if ((diag_x, diag_y) != (x, y) and 
+                        0 <= diag_x < BOARD_SIZE and 
+                        0 <= diag_y < BOARD_SIZE):
+                        # Check if there's no fence blocking the diagonal move
+                        if not is_fence_between(state, (opp_x, opp_y), (diag_x, diag_y)):
+                            moves.append(("move", (diag_x, diag_y)))
     
     return moves
 

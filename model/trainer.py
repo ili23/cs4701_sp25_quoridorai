@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import lightning as pl
 from lightning.callbacks import ModelCheckpoint
 from tqdm import tqdm
+from datetime import datetime
 
 # Add the parent directory to the path so we can import from game_engine
 import sys
@@ -129,6 +130,7 @@ class QuoridorTrainer:
             else:
                 target = -1.0  # Loss
             
+            # Store the game state tuple and target value
             training_data.append((game_state, target))
         
         return training_data
@@ -154,5 +156,11 @@ class QuoridorTrainer:
             # Train on updated dataset every 10 episodes
             if (episode + 1) % 10 == 0:
                 self.train()
+        
+        # Save the final dataset to CSV file
+        save_dir = os.path.join(os.path.dirname(__file__), "training_data")
+        os.makedirs(save_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.dataset.save_to_csv(os.path.join(save_dir, f"self_play_data_{timestamp}.csv"))
         
         return self.model 
