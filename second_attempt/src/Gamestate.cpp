@@ -5,7 +5,9 @@
 #include <iostream>
 #include <queue>
 
-float evaluate(Gamestate& g) {
+torch::jit::script::Module Gamestate::module;
+
+float Gamestate::model_evaluate(Gamestate& g) {
   if (g.terminal()) {
     return g.result() == 1 ? 1 : -1;
   }
@@ -45,7 +47,7 @@ void Gamestate::displayBoard() {
   std::cout << "P1 is at " << p1Pos.first << " " << p1Pos.second << std::endl;
   std::cout << "P2 is at " << p2Pos.first << " " << p2Pos.second << std::endl;
 
-  std::cout << "Evaluation is " << evaluate(*this) << std::endl;
+  std::cout << "Evaluation is " << model_evaluate(*this) << std::endl;
 
   for (int y = kBoardSize - 1; y >= 0; y--) {
     std::cout << "  ";

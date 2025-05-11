@@ -15,7 +15,7 @@ int main(int argc, const char* argv[]) {
 
   Gamestate gs;
 
-  Gamestate.module = torch::jit::load(argv[1]);
+  Gamestate::module = torch::jit::load(argv[1]);
 
   while (!gs.terminal()) {
     tree.startNewSearch(gs);

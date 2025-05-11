@@ -93,7 +93,7 @@ void MCTS::singleIterate() {
   // std::cout << "expansion done." << std::endl;
 
   // Step 3: Simulation
-  float score = evaluate(selection->state);
+  float score = Gamestate::model_evaluate(selection->state);
   if (selection->state.p1Turn) {
     score = 1 - score;
   }

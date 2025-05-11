@@ -28,12 +28,12 @@ class Move {
 };
 
 class Gamestate {
-  static torch::jit::script::Module module;
-
-  static float evaluate(Gamestate& g);
-
  public:
   Gamestate();
+
+  static torch::jit::script::Module module;
+
+  static float model_evaluate(Gamestate& g);
 
   std::pair<int, int> p1Pos;
   std::pair<int, int> p2Pos;
