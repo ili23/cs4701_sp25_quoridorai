@@ -25,7 +25,7 @@ set(SOURCES
 # Add the executable
 add_executable(quoridor ${SOURCES})
 
-target_compile_options(quoridor PRIVATE -Wall -Wextra -Wuninitialized)
+# target_compile_options(quoridor PRIVATE -Wall -Wextra -Wuninitialized)
 
 target_link_libraries(quoridor "${TORCH_LIBRARIES}")
 
