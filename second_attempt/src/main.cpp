@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #include "MCTS.hpp"
 
@@ -17,6 +18,8 @@ int main(int argc, const char* argv[]) {
 
   Gamestate::module = torch::jit::load(argv[1]);
 
+  std::vector<Gamestate> positions;
+
   while (!gs.terminal()) {
     tree.startNewSearch(gs);
     tree.iterate(10000);
@@ -27,6 +30,10 @@ int main(int argc, const char* argv[]) {
 
     gs.displayBoard();
 
-    std::cin.get();
+    positions.push_back(gs);
   }
+
+  // Write positions to a csv
+
+  return 0;
 };

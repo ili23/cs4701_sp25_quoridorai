@@ -64,6 +64,6 @@ void Node::backpropogate(float score) {
   n += 1;
 
   if (parent != nullptr) {
-    parent->backpropogate(1 - score);
+    parent->backpropogate(-1 * score);
   }
 }

@@ -95,7 +95,7 @@ void MCTS::singleIterate() {
   // Step 3: Simulation
   float score = Gamestate::model_evaluate(selection->state);
   if (selection->state.p1Turn) {
-    score = 1 - score;
+    score = -1 * score;
   }
 
   // if (score != 0.5) {

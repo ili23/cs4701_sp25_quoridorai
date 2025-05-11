@@ -8,6 +8,8 @@
 torch::jit::script::Module Gamestate::module;
 
 float Gamestate::model_evaluate(Gamestate& g) {
+  using namespace torch::indexing;
+
   if (g.terminal()) {
     return g.result() == 1 ? 1 : -1;
   }
@@ -15,6 +17,11 @@ float Gamestate::model_evaluate(Gamestate& g) {
   torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
   torch::Tensor fence_counts = torch::zeros({1, 2});
   torch::Tensor move_count = torch::zeros({1, 1});
+
+  fence_counts.index_put_({0, 0}, g.p1Fences);
+  fence_counts.index_put_({0, 1}, g.p2Fences);
+
+  // FILL IN HERE
 
   auto inner_tuple =
       torch::ivalue::Tuple::create({board_tensor, fence_counts, move_count});

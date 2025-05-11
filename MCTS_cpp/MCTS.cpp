@@ -41,14 +41,14 @@ bool isValidFencePlacement(const Gamestate& state, const Move& move) {
   if (move.pawnMove) {
     return true;
   }
-  
+
   // Apply the move to get the next state
   std::unique_ptr<Gamestate> nextState = state.applyMove(move);
-  
+
   // Check if both players have a path to their respective goals
-  bool p1HasPath = nextState->pathToEnd(true);  // Player 0 to bottom row
-  bool p2HasPath = nextState->pathToEnd(false); // Player 1 to top row
-  
+  bool p1HasPath = nextState->pathToEnd(true);   // Player 0 to bottom row
+  bool p2HasPath = nextState->pathToEnd(false);  // Player 1 to top row
+
   // Both players must have a path to their goals
   return p1HasPath && p2HasPath;
 }
@@ -56,7 +56,8 @@ bool isValidFencePlacement(const Gamestate& state, const Move& move) {
 int rollout(const Gamestate& state, int maxSteps) {
   Gamestate currentState = state;
   int t = 0;
-  int maxAttempts = 10; // Limit attempts to find valid move to avoid infinite loops
+  int maxAttempts =
+      10;  // Limit attempts to find valid move to avoid infinite loops
 
   while (!isTerminal(currentState) && t < maxSteps) {
     // Get all possible moves
@@ -64,7 +65,7 @@ int rollout(const Gamestate& state, int maxSteps) {
     if (moves.empty()) {
       break;
     }
-    
+
     // Pre-filter moves to remove invalid fence placements
     std::vector<Move> validMoves;
     for (const auto& move : moves) {
@@ -72,7 +73,7 @@ int rollout(const Gamestate& state, int maxSteps) {
         validMoves.push_back(move);
       }
     }
-    
+
     // If no valid moves after filtering, this shouldn't happen in a valid game
     if (validMoves.empty()) {
       // Fall back to pawn moves only
@@ -81,18 +82,18 @@ int rollout(const Gamestate& state, int maxSteps) {
           validMoves.push_back(move);
         }
       }
-      
+
       // If still empty, something is wrong - break out
       if (validMoves.empty()) {
         std::cerr << "Warning: No valid moves found in rollout!" << std::endl;
         break;
       }
     }
-    
+
     // Separate pawn moves and fence moves
     std::vector<Move> pawnMoves;
     std::vector<Move> fenceMoves;
-    
+
     for (const auto& move : validMoves) {
       if (move.pawnMove) {
         pawnMoves.push_back(move);
@@ -100,27 +101,27 @@ int rollout(const Gamestate& state, int maxSteps) {
         fenceMoves.push_back(move);
       }
     }
-    
+
     Move selectedMove;
-    
+
     // Check if we have pawn moves
     if (!pawnMoves.empty()) {
       // 70% of the time, choose a pawn move towards the goal
       std::uniform_real_distribution<double> probDist(0.0, 1.0);
       bool useHeuristic = probDist(rng) < 0.7;
-      
+
       if (useHeuristic) {
         // Current player
         bool currentPlayer = getCurrentPlayer(currentState);
         int goalRow = currentPlayer ? kBoardSize - 1 : 0;
-        
+
         // Sort moves by distance to goal
         std::sort(pawnMoves.begin(), pawnMoves.end(),
                   [goalRow](const Move& a, const Move& b) {
                     return std::abs(a.pos.first - goalRow) <
                            std::abs(b.pos.first - goalRow);
                   });
-        
+
         // Use the move closest to the goal
         selectedMove = pawnMoves[0];
       } else {
@@ -166,7 +167,7 @@ double GameTree::value() const {
   }
 
   // Standard UCB1 formula
-  const double c = 1.414; // sqrt(2)
+  const double c = 1.414;  // sqrt(2)
   return (double)(*stateCache)[state].w / (*stateCache)[state].n +
          c * std::sqrt(std::log((*stateCache)[parent->state].n) /
                        (*stateCache)[state].n);
@@ -189,7 +190,7 @@ void GameTree::expand() {
               std::make_unique<GameTree>(*nextState, this, stateCache));
         }
       }
-      
+
       // If no valid moves were found (shouldn't happen), add all pawn moves
       if (children.empty()) {
         for (const auto& move : moves) {
@@ -233,6 +234,7 @@ void GameTree::backprop(int winner) {
   }
 
   if (parent != nullptr) {
+    // TODO: FIX THIS; needs to alternate somehow
     parent->backprop(winner);
   }
 }
@@ -240,25 +242,25 @@ void GameTree::backprop(int winner) {
 GameTree* GameTree::findChild(const Gamestate& targetState, int depth) {
   std::queue<std::pair<GameTree*, int>> q;
   q.push({this, depth});
-  
+
   while (!q.empty()) {
     auto [tree, d] = q.front();
     q.pop();
-    
+
     // Compare all aspects of the game state to find a match
-    if (tree->state.p1Pos == targetState.p1Pos && 
+    if (tree->state.p1Pos == targetState.p1Pos &&
         tree->state.p2Pos == targetState.p2Pos &&
         tree->state.p1Turn == targetState.p1Turn) {
       return tree;
     }
-    
+
     if (d > 0 && !tree->children.empty()) {
       for (const auto& child : tree->children) {
         q.push({child.get(), d - 1});
       }
     }
   }
-  
+
   return nullptr;  // Child not found
 }
 
@@ -292,7 +294,7 @@ Move Agent::selectMove(Gamestate& state) {
 
   // Get all possible moves
   std::vector<Move> possibleMoves = accessCacheOrUpdate(state);
-  
+
   // Pre-filter to remove invalid fence placements
   std::vector<Move> validMoves;
   for (const auto& move : possibleMoves) {
@@ -300,7 +302,7 @@ Move Agent::selectMove(Gamestate& state) {
       validMoves.push_back(move);
     }
   }
-  
+
   // If no valid moves after filtering (shouldn't happen), use pawn moves only
   if (validMoves.empty()) {
     for (const auto& move : possibleMoves) {
@@ -308,7 +310,7 @@ Move Agent::selectMove(Gamestate& state) {
         validMoves.push_back(move);
       }
     }
-    
+
     // If still empty, something is wrong
     if (validMoves.empty()) {
       throw std::runtime_error("No valid moves found after filtering");
@@ -325,7 +327,8 @@ Move Agent::selectMove(Gamestate& state) {
 
     // Only consider if the state has been visited
     if (stateCache[childState].n > 0) {
-      double score = (double)stateCache[childState].w / stateCache[childState].n;
+      double score =
+          (double)stateCache[childState].w / stateCache[childState].n;
 
       if (score > bestScore) {
         bestScore = score;
