@@ -16,7 +16,8 @@ def export_model(checkpoint_path="model/checkpoints/quoridor_cnn_final.ckpt", ou
     
     # Load the model from checkpoint
     print(f"Loading model from checkpoint: {checkpoint_path}")
-    lightning_model = QuoridorLightningModule.load_from_checkpoint(checkpoint_path)
+    # lightning_model = QuoridorLightningModule.load_from_checkpoint(checkpoint_path)
+    lightning_model = QuoridorLightningModule()
     lightning_model.eval()  # Set to evaluation mode
     
     # Get the underlying PyTorch model

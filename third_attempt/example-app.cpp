@@ -20,13 +20,24 @@ int main(int argc, const char* argv[]) {
 
   std::cout << "ok\n";
 
-  // Create a vector of inputs.
-  std::vector<torch::jit::IValue> inputs;
-  inputs.push_back(torch::ones({10}));
 
-  // Execute the model and turn its output into a tensor.
-  at::Tensor output = module.forward(inputs).toTensor();
-  std::cout << output.slice(/*dim=*/0, /*start=*/0, /*end=*/1) << '\n';
+  // Create your input tensors
+  torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
+  torch::Tensor fence_counts = torch::zeros({1, 2});
+  torch::Tensor move_count = torch::zeros({1, 1});
+
+  // Pack them into an inner tuple
+  auto inner_tuple = torch::ivalue::Tuple::create({board_tensor, fence_counts, move_count});
+
+  // Then wrap that in an outer tuple to match the Python ( (a, b, c), ) structure
+  std::vector<torch::IValue> inputs;
+  inputs.push_back(inner_tuple);
+
+  // Run inference
+  torch::Tensor output = module.forward(inputs).toTensor();
+
+  // Optional: print or inspect output
+  std::cout << output << std::endl;
 
   std::cout << "ok\n";
 
