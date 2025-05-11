@@ -1,251 +1,356 @@
 #include "MCTS.hpp"
 
+#include <chrono>
 #include <iostream>
-#include <queue>
+#include <random>
 
-Move::Move(int x, int y) {
-  pawnMove = true;
-  pos = std::make_pair(x, y);
+// Global variables
+std::unordered_map<Gamestate, std::vector<Move>> POSSIBLE_MOVES;
+std::mt19937 rng(std::chrono::steady_clock::now().time_since_epoch().count());
+
+// Helper function implementations
+bool isTerminal(const Gamestate& state) { return checkWinner(state) != -1; }
+
+int checkWinner(const Gamestate& state) {
+  // Player 0 wins by reaching the bottom row (row = BOARD_SIZE - 1)
+  if (state.p1Pos.first == kBoardSize - 1) {
+    return 0;
+  }
+
+  // Player 1 wins by reaching the top row (row = 0)
+  if (state.p2Pos.first == 0) {
+    return 1;
+  }
+
+  // No winner yet
+  return -1;
 }
 
-Move::Move(std::pair<int, int> p) {
-  pawnMove = true;
-  pos = p;
+bool getCurrentPlayer(const Gamestate& state) { return state.p1Turn; }
+
+std::vector<Move> accessCacheOrUpdate(Gamestate& state) {
+  if (POSSIBLE_MOVES.find(state) == POSSIBLE_MOVES.end()) {
+    POSSIBLE_MOVES[state] = state.getMoves();
+  }
+  return POSSIBLE_MOVES[state];
 }
 
-Move::Move(bool h, std::pair<int, int> p) {
-  pawnMove = false;
-  hFence = h;
-  pos = p;
+// Function to validate fence placements don't trap players
+bool isValidFencePlacement(const Gamestate& state, const Move& move) {
+  // Skip validation for pawn moves
+  if (move.pawnMove) {
+    return true;
+  }
+  
+  // Apply the move to get the next state
+  std::unique_ptr<Gamestate> nextState = state.applyMove(move);
+  
+  // Check if both players have a path to their respective goals
+  bool p1HasPath = nextState->pathToEnd(true);  // Player 0 to bottom row
+  bool p2HasPath = nextState->pathToEnd(false); // Player 1 to top row
+  
+  // Both players must have a path to their goals
+  return p1HasPath && p2HasPath;
 }
 
-Move::Move() {}
+int rollout(const Gamestate& state, int maxSteps) {
+  Gamestate currentState = state;
+  int t = 0;
+  int maxAttempts = 10; // Limit attempts to find valid move to avoid infinite loops
 
-Gamestate::Gamestate() {
-  p1Pos.first = 4;
-  p1Pos.second = 0;
-  p2Pos.first = 4;
-  p2Pos.second = 8;
-
-  p1Turn = true;
-}
-
-void Gamestate::displayBoard() {
-  std::cout << (p1Turn ? "X" : "O") << " to move" << std::endl;
-
-  for (int y = kBoardSize - 1; y >= 0; y--) {
-    std::cout << "  ";
-    for (int x = 0; x < kBoardSize; x++) {
-      // std::cout << " ";
-      if (vFences[x][y] == 1) {
-        std::cout << "<==>";
-      } else {
-        std::cout << "----";
-      }
-      std::cout << " ";
+  while (!isTerminal(currentState) && t < maxSteps) {
+    // Get all possible moves
+    std::vector<Move> moves = accessCacheOrUpdate(currentState);
+    if (moves.empty()) {
+      break;
     }
-
-    std::cout << std::endl;
-    for (int x = 0; x < kBoardSize; x++) {
-      if (x > 0 && hFences[x - 1][y] == 1) {
-        std::cout << "[|]";
-      } else {
-        std::cout << " | ";
+    
+    // Pre-filter moves to remove invalid fence placements
+    std::vector<Move> validMoves;
+    for (const auto& move : moves) {
+      if (move.pawnMove || isValidFencePlacement(currentState, move)) {
+        validMoves.push_back(move);
       }
-
-      if (std::make_pair(x, y) == p1Pos) {
-        std::cout << "X";
-      } else if (std::make_pair(x, y) == p2Pos) {
-        std::cout << "O";
-      } else {
-        std::cout << " ";
-      }
-
-      std::cout << " ";
-      if (x == kBoardSize - 1) {
-        if (hFences[x][y]) {
-          std::cout << "[|]" << std::endl;
-        } else {
-          std::cout << " | " << std::endl;
+    }
+    
+    // If no valid moves after filtering, this shouldn't happen in a valid game
+    if (validMoves.empty()) {
+      // Fall back to pawn moves only
+      for (const auto& move : moves) {
+        if (move.pawnMove) {
+          validMoves.push_back(move);
         }
       }
+      
+      // If still empty, something is wrong - break out
+      if (validMoves.empty()) {
+        std::cerr << "Warning: No valid moves found in rollout!" << std::endl;
+        break;
+      }
     }
+    
+    // Separate pawn moves and fence moves
+    std::vector<Move> pawnMoves;
+    std::vector<Move> fenceMoves;
+    
+    for (const auto& move : validMoves) {
+      if (move.pawnMove) {
+        pawnMoves.push_back(move);
+      } else {
+        fenceMoves.push_back(move);
+      }
+    }
+    
+    Move selectedMove;
+    
+    // Check if we have pawn moves
+    if (!pawnMoves.empty()) {
+      // 70% of the time, choose a pawn move towards the goal
+      std::uniform_real_distribution<double> probDist(0.0, 1.0);
+      bool useHeuristic = probDist(rng) < 0.7;
+      
+      if (useHeuristic) {
+        // Current player
+        bool currentPlayer = getCurrentPlayer(currentState);
+        int goalRow = currentPlayer ? kBoardSize - 1 : 0;
+        
+        // Sort moves by distance to goal
+        std::sort(pawnMoves.begin(), pawnMoves.end(),
+                  [goalRow](const Move& a, const Move& b) {
+                    return std::abs(a.pos.first - goalRow) <
+                           std::abs(b.pos.first - goalRow);
+                  });
+        
+        // Use the move closest to the goal
+        selectedMove = pawnMoves[0];
+      } else {
+        // Randomly select a pawn move
+        std::uniform_int_distribution<int> dist(0, pawnMoves.size() - 1);
+        selectedMove = pawnMoves[dist(rng)];
+      }
+    } else if (!fenceMoves.empty()) {
+      // Randomly select a fence move - all should be valid at this point
+      std::uniform_int_distribution<int> dist(0, fenceMoves.size() - 1);
+      selectedMove = fenceMoves[dist(rng)];
+    } else {
+      // Randomly select any move if neither pawn nor fence moves were found
+      std::uniform_int_distribution<int> dist(0, validMoves.size() - 1);
+      selectedMove = validMoves[dist(rng)];
+    }
+
+    // Apply the selected move
+    currentState = *currentState.applyMove(selectedMove);
+    t++;
   }
-  std::cout << "  ---- ---- ---- ---- ---- ---- ---- ---- ----" << std::endl;
+
+  return checkWinner(currentState);
 }
 
-std::unique_ptr<Gamestate> Gamestate::applyMove(const Move &m) const {
-  std::unique_ptr<Gamestate> g = std::make_unique<Gamestate>(*this);
+// GameTree implementation
+GameTree::GameTree(const Gamestate& state, GameTree* parent,
+                   std::unordered_map<Gamestate, StateInfo>* stateCache)
+    : state(state), parent(parent), stateCache(stateCache) {
+  // Initialize the state entry if it doesn't exist
+  if (stateCache != nullptr && stateCache->find(state) == stateCache->end()) {
+    (*stateCache)[state] = StateInfo();
+  }
+}
 
-  if (m.pawnMove) {
-    if (g->p1Turn) {
-      g->p1Pos = m.pos;
-    } else {
-      g->p2Pos = m.pos;
-    }
+GameTree::~GameTree() {
+  // Children are managed by unique_ptr, so they'll be deleted automatically
+}
+
+double GameTree::value() const {
+  if ((*stateCache)[state].n == 0) {
+    return std::numeric_limits<double>::infinity();
+  }
+
+  // Standard UCB1 formula
+  const double c = 1.414; // sqrt(2)
+  return (double)(*stateCache)[state].w / (*stateCache)[state].n +
+         c * std::sqrt(std::log((*stateCache)[parent->state].n) /
+                       (*stateCache)[state].n);
+}
+
+void GameTree::expand() {
+  if (isTerminal(state)) {
+    backprop(checkWinner(state));
   } else {
-    if (g->p1Turn) {
-      g->p1Fences--;
-    } else {
-      g->p2Fences--;
-    }
-    if (m.hFence) {
-      g->hFences[m.pos.first][m.pos.second] = true;
-    } else {
-      g->vFences[m.pos.first][m.pos.second] = true;
-    }
-  }
+    if (children.empty()) {
+      backprop(rollout(state));
 
-  g->p1Turn = !g->p1Turn;
-
-  return g;
-}
-
-bool inBounds(std::pair<int, int> x) {
-  return x.first >= 0 && x.first < kBoardSize && x.second >= 0 &&
-         x.second < kBoardSize;
-}
-
-std::vector<Move> Gamestate::getMoves() {
-  std::vector<Move> moves;
-
-  std::pair<int, int> startingPoint = p1Turn ? p1Pos : p2Pos;
-  std::pair<int, int> otherPawn = p1Turn ? p2Pos : p1Pos;
-
-  // Find valid pawn moves
-  std::pair<int, int> target =
-      std::make_pair(startingPoint.first, startingPoint.second + 1);
-
-  if (inBounds(target) && target != otherPawn &&
-      !vFences[startingPoint.first][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first, startingPoint.second - 1);
-
-  if (inBounds(target) && target != otherPawn &&
-      !vFences[startingPoint.first][startingPoint.second - 1]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first + 1, startingPoint.second);
-
-  if (inBounds(target) && target != otherPawn &&
-      !hFences[startingPoint.first][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first - 1, startingPoint.second);
-
-  if (inBounds(target) && target != otherPawn &&
-      !hFences[startingPoint.first - 1][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  // Return if the current player has no more fences to place
-  if ((p1Turn ? p1Fences : p2Fences) <= 0) {
-    std::cout << "REUNGING EARLYT BC NUMBER OF FENCES " << std::endl;
-    return moves;
-  }
-
-  // Find valid fence moves
-  for (int x = 0; x < kBoardSize; x++) {
-    for (int y = 0; y < kBoardSize; y++) {
-      if (!hFences[x][y]) {
-        hFences[x][y] = true;
-
-        if (pathToEnd(true) && pathToEnd(false)) {
-          moves.emplace_back(true, std::make_pair(x, y));
-        } else {
-          std::cout << "SKILPING FENCE BC NO MATH" << std::endl;
+      // Create children for all possible moves
+      std::vector<Move> moves = accessCacheOrUpdate(state);
+      for (const auto& move : moves) {
+        // Only create children for valid moves
+        if (move.pawnMove || isValidFencePlacement(state, move)) {
+          std::unique_ptr<Gamestate> nextState = state.applyMove(move);
+          children.push_back(
+              std::make_unique<GameTree>(*nextState, this, stateCache));
         }
-        hFences[x][y] = false;
       }
-      if (!vFences[x][y]) {
-        vFences[x][y] = true;
-
-        if (pathToEnd(true) && pathToEnd(false)) {
-          moves.emplace_back(false, std::make_pair(x, y));
+      
+      // If no valid moves were found (shouldn't happen), add all pawn moves
+      if (children.empty()) {
+        for (const auto& move : moves) {
+          if (move.pawnMove) {
+            std::unique_ptr<Gamestate> nextState = state.applyMove(move);
+            children.push_back(
+                std::make_unique<GameTree>(*nextState, this, stateCache));
+          }
         }
-        vFences[x][y] = false;
+      }
+    } else {
+      // Find the child with the highest UCB value
+      double maxValue = -std::numeric_limits<double>::infinity();
+      size_t bestChildIndex = 0;
+
+      for (size_t i = 0; i < children.size(); i++) {
+        double childValue = children[i]->value();
+        if (childValue > maxValue) {
+          maxValue = childValue;
+          bestChildIndex = i;
+        }
+      }
+
+      // Expand the best child
+      children[bestChildIndex]->expand();
+    }
+  }
+}
+
+void GameTree::backprop(int winner) {
+  (*stateCache)[state].n += 1;
+
+  if (winner != -1) {  // There is a winner
+    // The previous player is the opposite of current player in this state
+    bool previousPlayer = !getCurrentPlayer(state);
+
+    // If the winner is the previous player, increment wins
+    if ((previousPlayer && winner == 0) || (!previousPlayer && winner == 1)) {
+      (*stateCache)[state].w += 1;
+    }
+  }
+
+  if (parent != nullptr) {
+    parent->backprop(winner);
+  }
+}
+
+GameTree* GameTree::findChild(const Gamestate& targetState, int depth) {
+  std::queue<std::pair<GameTree*, int>> q;
+  q.push({this, depth});
+  
+  while (!q.empty()) {
+    auto [tree, d] = q.front();
+    q.pop();
+    
+    // Compare all aspects of the game state to find a match
+    if (tree->state.p1Pos == targetState.p1Pos && 
+        tree->state.p2Pos == targetState.p2Pos &&
+        tree->state.p1Turn == targetState.p1Turn) {
+      return tree;
+    }
+    
+    if (d > 0 && !tree->children.empty()) {
+      for (const auto& child : tree->children) {
+        q.push({child.get(), d - 1});
       }
     }
   }
-
-  return moves;
+  
+  return nullptr;  // Child not found
 }
 
-void Gamestate::displayAllMoves() {
-  std::vector<Move> allMoves = getMoves();
+// Agent implementation
+Agent::Agent(int iterations) : searchDepth(iterations), tree(nullptr) {}
 
-  for (Move m : allMoves) {
-    auto v = applyMove(m);
-    v->displayBoard();
-  }
+Agent::~Agent() {
+  // Tree is managed by unique_ptr, so it'll be deleted automatically
 }
 
-bool Gamestate::pathToEnd(bool p1) {
-  bool reachable[kBoardSize][kBoardSize] = {};
-
-  std::queue<std::pair<int, int>> toSearch;
-
-  toSearch.push(p1 ? p1Pos : p2Pos);
-  reachable[toSearch.front().first][toSearch.front().second] = true;
-
-  std::pair<int, int> otherPawn = p1 ? p2Pos : p1Pos;
-
-  std::pair<int, int> target;
-  std::pair<int, int> startingPoint;
-
-  while (!toSearch.empty()) {
-    startingPoint = toSearch.front();
-
-    target = std::make_pair(startingPoint.first, startingPoint.second + 1);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !vFences[startingPoint.first][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first, startingPoint.second - 1);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !vFences[startingPoint.first][startingPoint.second - 1]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first + 1, startingPoint.second);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !hFences[startingPoint.first][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first - 1, startingPoint.second);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !hFences[startingPoint.first - 1][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    toSearch.pop();
+Move Agent::selectMove(Gamestate& state) {
+  // Make sure the state is not terminal
+  if (isTerminal(state)) {
+    throw std::runtime_error("Cannot select a move for a terminal state");
   }
 
-  // Check back row
-  // Player 1's back row is y = kBoardSize - 1
-  // Player 2's back row is y = 0
-  int y = p1 ? kBoardSize - 1 : 0;
-  for (int x = 0; x < kBoardSize; x++) {
-    if (reachable[x][y]) return true;
+  // Create or update the tree
+  if (tree == nullptr) {
+    tree = std::make_unique<GameTree>(state, nullptr, &stateCache);
+  } else if (tree->state.p1Pos != state.p1Pos ||
+             tree->state.p2Pos != state.p2Pos ||
+             tree->state.p1Turn != state.p1Turn) {
+    // If the state has changed, create a new tree with the existing state cache
+    tree = std::make_unique<GameTree>(state, nullptr, &stateCache);
   }
 
-  return false;
+  // Run the search algorithm
+  for (int i = 0; i < searchDepth; i++) {
+    tree->expand();
+  }
+
+  // Get all possible moves
+  std::vector<Move> possibleMoves = accessCacheOrUpdate(state);
+  
+  // Pre-filter to remove invalid fence placements
+  std::vector<Move> validMoves;
+  for (const auto& move : possibleMoves) {
+    if (move.pawnMove || isValidFencePlacement(state, move)) {
+      validMoves.push_back(move);
+    }
+  }
+  
+  // If no valid moves after filtering (shouldn't happen), use pawn moves only
+  if (validMoves.empty()) {
+    for (const auto& move : possibleMoves) {
+      if (move.pawnMove) {
+        validMoves.push_back(move);
+      }
+    }
+    
+    // If still empty, something is wrong
+    if (validMoves.empty()) {
+      throw std::runtime_error("No valid moves found after filtering");
+    }
+  }
+
+  // Find the child with the best win ratio
+  double bestScore = -1.0;
+  size_t bestChildIndex = 0;
+  bool foundValidChild = false;
+
+  for (size_t i = 0; i < tree->children.size(); i++) {
+    const auto& childState = tree->children[i]->state;
+
+    // Only consider if the state has been visited
+    if (stateCache[childState].n > 0) {
+      double score = (double)stateCache[childState].w / stateCache[childState].n;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestChildIndex = i;
+        foundValidChild = true;
+      }
+    }
+  }
+
+  if (foundValidChild) {
+    // Find which move leads to the best child state
+    const auto& bestChildState = tree->children[bestChildIndex]->state;
+
+    // Match the move from valid moves that leads to this state
+    for (size_t i = 0; i < validMoves.size(); i++) {
+      std::unique_ptr<Gamestate> nextState = state.applyMove(validMoves[i]);
+
+      if (nextState->p1Pos == bestChildState.p1Pos &&
+          nextState->p2Pos == bestChildState.p2Pos &&
+          nextState->p1Turn == bestChildState.p1Turn) {
+        return validMoves[i];
+      }
+    }
+  }
+
+  // Fallback: If no valid move found through MCTS, use first valid move
+  return validMoves[0];
 }

@@ -1,6 +1,6 @@
 def argmax(lst, key=None):
-    m = lst[0]
-    i_m = 0
+    m = 0
+    m_i = 0
 
     for i, o in enumerate(lst):
         v = o if not key else key(o)
