@@ -12,7 +12,19 @@ float Gamestate::model_evaluate(Gamestate& g) {
     return g.result() == 1 ? 1 : -1;
   }
 
-  return 0.5;
+  torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
+  torch::Tensor fence_counts = torch::zeros({1, 2});
+  torch::Tensor move_count = torch::zeros({1, 1});
+
+  auto inner_tuple =
+      torch::ivalue::Tuple::create({board_tensor, fence_counts, move_count});
+
+  std::vector<torch::IValue> inputs;
+  inputs.push_back(inner_tuple);
+
+  torch::Tensor output = module.forward(inputs).toTensor();
+
+  return output.item<float>();
 }
 
 Move::Move(int x, int y) {
