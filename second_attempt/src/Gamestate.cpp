@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <queue>
+#include <cassert>
 
 torch::jit::script::Module Gamestate::module;
 
@@ -115,9 +116,55 @@ std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> game_state_to_tensors(
 }
 
 
-void Gamestate::write_csv(std::ofstream& f) {
-  f << p1Pos.first << ", " << p1Pos.second << ", " << p2Pos.first << ", "
-    << p2Pos.second << std::endl;
+void Gamestate::write_csv(std::ofstream& f, int winning_player) {
+  // Determine outcome based on winning_player
+  // winning_player = 0 means player 0 (p1) won
+  // winning_player = 1 means player 1 (p2) won
+  float outcome = (p1Turn ? (winning_player == 0 ? 1.0 : -1.0) : (winning_player == 1 ? 1.0 : -1.0));
+  
+  // Format: player1_pawn,player2_pawn,num_walls_player1,num_walls_player2,move_count,current_player,
+  // h_wall_col0-7,v_wall_col0-7,outcome
+  
+  // Player positions formatted as "row|col"
+  f << p1Pos.first << "|" << p1Pos.second << ",";
+  f << p2Pos.first << "|" << p2Pos.second << ",";
+  
+  // Number of walls for each player
+  f << p1Fences << "," << p2Fences << ",";
+  
+  // Move count
+  f << moveCount << ",";
+  
+  // Current player (0 for p1, 1 for p2)
+  f << (p1Turn ? 0 : 1) << ",";
+  
+  // Horizontal walls for each column
+  for (int col = 0; col < 8; col++) {
+    // Format horizontal walls as pipe-separated values
+    for (int row = 0; row < 8; row++) {
+      // Add 1 if there's a wall, 0 otherwise
+      if (row > 0) f << "|"; // Add pipe separator between values
+      f << (row < kBoardSize-1 && hFences[row][col] ? "1" : "0");
+    }
+    if (col < 7) f << ",";
+  }
+  
+  // Add comma between h_walls and v_walls
+  f << ",";
+  
+  // Vertical walls for each column
+  for (int col = 0; col < 8; col++) {
+    // Format vertical walls as pipe-separated values
+    for (int row = 0; row < 8; row++) {
+      // Add 1 if there's a wall, 0 otherwise
+      if (row > 0) f << "|"; // Add pipe separator between values
+      f << (row < kBoardSize-1 && vFences[row][col] ? "1" : "0");
+    }
+    if (col < 7) f << ",";
+  }
+  
+  // Write the outcome
+  f << "," << outcome << std::endl;
 }
 
 float Gamestate::model_evaluate(Gamestate& g) {
@@ -160,9 +207,9 @@ Move::Move(bool h, std::pair<int, int> p) {
 Move::Move() {}
 
 Gamestate::Gamestate() {
-  p1Pos.first = 6;
+  p1Pos.first = 2;
   p1Pos.second = 5;
-  p2Pos.first = 8;
+  p2Pos.first = 2;
   p2Pos.second = 0;
 
   p1Turn = true;
@@ -238,7 +285,7 @@ std::unique_ptr<Gamestate> Gamestate::applyMove(const Move& m) const {
   }
 
   g->p1Turn = !g->p1Turn;
-
+  g->moveCount++;
   return g;
 }
 
@@ -248,16 +295,20 @@ bool inBounds(std::pair<int, int> x) {
 }
 
 bool Gamestate::terminal() {
-  return p1Pos.first == kBoardSize - 1 || p2Pos.first == 0;
+  return p1Pos.first == kBoardSize - 1 || p2Pos.first == 0 || moveCount >= kMaxMoves;
 }
 
 float Gamestate::result() {
+  if (moveCount >= kMaxMoves) {
+    return 0;
+  }
+
   if (p1Pos.first == kBoardSize - 1)
     return 1;
   else if (p2Pos.first == 0)
-    return 0;
+    return -1;
 
-  return 0.5;
+  return 0;
 }
 
 std::vector<Move> Gamestate::getMoves() {

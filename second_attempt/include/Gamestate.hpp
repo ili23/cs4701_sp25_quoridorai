@@ -10,7 +10,9 @@
 
 constexpr int kBoardSize = 9;
 
-constexpr int kStartingFences = 0;
+constexpr int kStartingFences = 1;
+
+constexpr int kMaxMoves = 10;
 
 class Move {
  public:
@@ -32,7 +34,7 @@ class Gamestate {
  public:
   Gamestate();
 
-  void write_csv(std::ofstream &f);
+  void write_csv(std::ofstream &f, int winning_player);
 
   static torch::jit::script::Module module;
 
