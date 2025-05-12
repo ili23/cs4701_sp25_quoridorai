@@ -5,3 +5,4 @@
 */venv/*
 */checkpoints/*
 .DS_Store
+*/libtorch/*

@@ -32,7 +32,7 @@ class Gamestate {
  public:
   Gamestate();
 
-  void write_csv(ofstream &f);
+  void write_csv(std::ofstream &f);
 
   static torch::jit::script::Module module;
 
@@ -43,7 +43,7 @@ class Gamestate {
 
   int p1Fences = kStartingFences;
   int p2Fences = kStartingFences;
-
+  int moveCount = 0;
   // Horizontal fences are defined to be to the right of the space they are
   // listed on That is, a fence at (x, y) indicates that players can no longer
   // move between space (x, y) and (x + 1, y)
@@ -54,7 +54,7 @@ class Gamestate {
   // between space (x, y) and (x, y + 1)
   bool vFences[kBoardSize][kBoardSize] = {};
 
-  bool p1Turn;
+  bool p1Turn; // True if p1 is the current player, false if p2 is the current player
 
   void displayBoard();
 

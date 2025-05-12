@@ -7,14 +7,7 @@
 
 // Function to convert a game state to tensors for model input
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> game_state_to_tensors(
-    const std::tuple<
-        std::pair<std::pair<int, int>, std::pair<int, int>>,  // player positions
-        std::pair<int, int>,                                  // fence counts
-        std::vector<std::vector<bool>>,                       // horizontal fences
-        std::vector<std::vector<bool>>,                       // vertical fences
-        int,                                                  // current player
-        int                                                   // move count
-    >& state) {
+    GameState & state) {
     
     const auto& positions = std::get<0>(state);
     const auto& fence_remaining = std::get<1>(state);

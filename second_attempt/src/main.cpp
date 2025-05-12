@@ -17,12 +17,18 @@ int main(int argc, const char* argv[]) {
 
   Gamestate gs;
 
-  Gamestate::module = torch::jit::load(argv[1]);
+  try {
+    Gamestate::module = torch::jit::load(argv[1]);
+  } catch (const c10::Error& e) {
+    std::cerr << "Error loading the model: " << e.what() << std::endl;
+    return -1;
+  }
 
   std::vector<Gamestate> positions;
 
   while (!gs.terminal()) {
     tree.startNewSearch(gs);
+    
     tree.iterate(10000);
 
     gs = tree.bestMoveApply();
@@ -35,7 +41,6 @@ int main(int argc, const char* argv[]) {
   }
 
   // Write positions to a csv
-
   std::ofstream myfile;
   myfile.open("gamestate.csv");
 

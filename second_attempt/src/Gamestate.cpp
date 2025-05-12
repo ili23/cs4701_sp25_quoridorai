@@ -7,7 +7,115 @@
 
 torch::jit::script::Module Gamestate::module;
 
-void Gamestate::write_csv(ofstream& f) {
+std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> game_state_to_tensors(
+    Gamestate & state) {
+    
+    // Create a 4x17x17 tensor to represent the board state
+    torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
+    
+    // Set player positions based on whose turn it is
+    if (state.p1Turn) {
+        // Player 0 (current player) - always in channel 0
+        int player0_row = state.p1Pos.first;
+        int player0_col = state.p1Pos.second;
+        board_tensor[0][0][player0_row][player0_col] = 1.0;
+
+        // Player 1 (opponent) - always in channel 1
+        int player1_row = state.p2Pos.first;
+        int player1_col = state.p2Pos.second;
+        board_tensor[0][1][player1_row][player1_col] = 1.0;
+        
+        // Set horizontal fences
+        for (int row = 0; row < kBoardSize; row++) {
+            for (int col = 0; col < kBoardSize; col++) {
+                if (state.hFences[row][col]) {
+                    // Set fence in position and extend it horizontally
+                    board_tensor[0][2][row][col] = 1.0;
+                    board_tensor[0][2][row][col + 1] = 1.0;
+                    board_tensor[0][2][row][col + 2] = 1.0;
+                }
+            }
+        }
+        
+        // Set vertical fences
+        for (int row = 0; row < kBoardSize; row++) {
+            for (int col = 0; col < kBoardSize; col++) {
+                if (state.vFences[row][col]) {
+                    // Set fence in position and extend it vertically
+                    board_tensor[0][3][row][col] = 1.0;
+                    board_tensor[0][3][row + 1][col] = 1.0;
+                    board_tensor[0][3][row + 2][col] = 1.0;
+                }
+            }
+        }
+    } else {
+        // If p2's turn, swap the perspective and flip the board
+        
+        // Player 0 (current player) - always in channel 0
+        // Flip positions - for row/col we use (kBoardSize - 1 - pos)
+        int player0_row = kBoardSize - 1 - state.p2Pos.first;
+        int player0_col = kBoardSize - 1 - state.p2Pos.second;
+        board_tensor[0][0][player0_row][player0_col] = 1.0;
+
+        // Player 1 (opponent) - always in channel 1
+        int player1_row = kBoardSize - 1 - state.p1Pos.first;
+        int player1_col = kBoardSize - 1 - state.p1Pos.second;
+        board_tensor[0][1][player1_row][player1_col] = 1.0;
+        
+        // Set horizontal fences - flip positions
+        for (int row = 0; row < kBoardSize; row++) {
+            for (int col = 0; col < kBoardSize; col++) {
+                // When flipping the board, horizontal fences remain horizontal
+                // but their position changes
+                int flipped_row = kBoardSize - 1 - row;
+                int flipped_col = kBoardSize - 1 - col - 2; // Account for fence length
+                
+                if (flipped_col >= 0 && state.hFences[row][col]) {
+                    // Set fence in position and extend it horizontally
+                    board_tensor[0][2][flipped_row][flipped_col] = 1.0;
+                    board_tensor[0][2][flipped_row][flipped_col + 1] = 1.0;
+                    board_tensor[0][2][flipped_row][flipped_col + 2] = 1.0;
+                }
+            }
+        }
+        
+        // Set vertical fences - flip positions
+        for (int row = 0; row < kBoardSize; row++) {
+            for (int col = 0; col < kBoardSize; col++) {
+                // When flipping the board, vertical fences remain vertical
+                // but their position changes
+                int flipped_row = kBoardSize - 1 - row - 2; // Account for fence length
+                int flipped_col = kBoardSize - 1 - col;
+                
+                if (flipped_row >= 0 && state.vFences[row][col]) {
+                    // Set fence in position and extend it vertically
+                    board_tensor[0][3][flipped_row][flipped_col] = 1.0;
+                    board_tensor[0][3][flipped_row + 1][flipped_col] = 1.0;
+                    board_tensor[0][3][flipped_row + 2][flipped_col] = 1.0;
+                }
+            }
+        }
+    }
+    
+    // Create fence counts tensor - always from current player's perspective
+    torch::Tensor fence_counts = torch::zeros({1, 2});
+    if (state.p1Turn) {
+        fence_counts[0][0] = state.p1Fences;  // Current player fences
+        fence_counts[0][1] = state.p2Fences;  // Opponent fences
+    } else {
+        fence_counts[0][0] = state.p2Fences;  // Current player fences
+        fence_counts[0][1] = state.p1Fences;  // Opponent fences
+    }
+    
+    // Create move count tensor
+    torch::Tensor move_count = torch::zeros({1, 1});
+    move_count[0][0] = state.moveCount;
+    
+    return {board_tensor, fence_counts, move_count};
+}
+
+
+void Gamestate::write_csv(std::ofstream& f) {
   f << p1Pos.first << ", " << p1Pos.second << ", " << p2Pos.first << ", "
     << p2Pos.second << std::endl;
 }
@@ -19,14 +127,8 @@ float Gamestate::model_evaluate(Gamestate& g) {
     return g.result() == 1 ? 1 : -1;
   }
 
-  torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
-  torch::Tensor fence_counts = torch::zeros({1, 2});
-  torch::Tensor move_count = torch::zeros({1, 1});
-
-  fence_counts.index_put_({0, 0}, g.p1Fences);
-  fence_counts.index_put_({0, 1}, g.p2Fences);
-
-  // FILL IN HERE
+  // Use game_state_to_tensors to get all necessary tensors
+  auto [board_tensor, fence_counts, move_count] = game_state_to_tensors(g);
 
   auto inner_tuple =
       torch::ivalue::Tuple::create({board_tensor, fence_counts, move_count});

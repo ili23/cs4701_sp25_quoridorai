@@ -19,7 +19,7 @@ void MCTS::iterate(int n) {
 
 Gamestate MCTS::bestMove() {
   Gamestate b;
-  float score = std::numeric_limits<float>::min();
+  float score = -std::numeric_limits<float>::infinity();
 
   for (std::shared_ptr<Node> c : root->children) {
     if (c->n > 0 && c->w / c->n >= score) {
@@ -34,19 +34,12 @@ Gamestate MCTS::bestMove() {
 
 Gamestate MCTS::bestMoveApply() {
   Gamestate b;
-  float score = std::numeric_limits<float>::min();
+  float score = -std::numeric_limits<float>::infinity();
 
   std::shared_ptr<Node> new_root;
   for (std::shared_ptr<Node> c : root->children) {
     if (c->n > 0 && c->w / c->n >= score) {
       b = c->state;
-
-      // std::cout << "Considering " << std::endl;
-      // b.displayBoard();
-      // std::cout << c->w << "  " << c->n << std::endl;
-
-      std::cout << "in btestMovePPlaqy if statment" << std::endl;
-
       score = c->w / c->n;
       new_root = c;
     }
@@ -61,7 +54,7 @@ void MCTS::singleIterate() {
   std::shared_ptr<Node> selection = root;
 
   while (!selection->leaf()) {
-    float score = std::numeric_limits<float>::min();
+    float score = -std::numeric_limits<float>::infinity();
     std::shared_ptr<Node> best_child = nullptr;
 
     for (std::shared_ptr<Node> c : selection->children) {
