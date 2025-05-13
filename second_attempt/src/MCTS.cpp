@@ -37,7 +37,7 @@ Gamestate MCTS::randomMoveApply() {
 
   Gamestate random_move;
 
-  random_move = root->children[random_number].state;
+  random_move = root->children[random_number]->state;
 
   return random_move;
 }

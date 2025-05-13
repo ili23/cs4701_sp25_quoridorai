@@ -6,6 +6,11 @@
 
 #include "MCTS.hpp"
 
+
+constexpr int kRandomMovesCount = 6;
+constexpr int kGameCount = 5;
+
+
 int main(int argc, const char* argv[]) {
   if (argc != 2) {
     std::cerr << "usage: example-app <path-to-exported-script-module>\n";
@@ -13,9 +18,8 @@ int main(int argc, const char* argv[]) {
   }
 
   int i = 0;
-  int total_games = 10000;
 
-  while (i < total_games) {
+  while (i < kGameCount) {
     MCTS tree;
 
     Gamestate gs;
@@ -29,12 +33,19 @@ int main(int argc, const char* argv[]) {
 
     std::vector<Gamestate> positions;
 
+    int moves_made = 0;
     while (!gs.terminal()) {
       tree.startNewSearch(gs);
 
-      tree.iterate(10000);
+      if (moves_made < kRandomMovesCount){
+        gs = tree.randomMoveApply();
+      }
+      else{
+        tree.iterate(10000);
+        gs = tree.bestMoveApply();
+      }
 
-      gs = tree.bestMoveApply();
+      moves_made++;
 
       std::cout << "W " << tree.root->w << " N " << tree.root->n << std::endl;
 

@@ -12,7 +12,7 @@ constexpr int kBoardSize = 5;
 
 constexpr int kStartingFences = 7;
 
-constexpr int kMaxMoves = 5;
+constexpr int kMaxMoves = 15;
 
 class Move {
  public:
