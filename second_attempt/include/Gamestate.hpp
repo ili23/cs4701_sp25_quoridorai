@@ -8,11 +8,11 @@
 #include <fstream>
 #include <vector>
 
-constexpr int kBoardSize = 9;
+constexpr int kBoardSize = 5;
 
-constexpr int kStartingFences = 0;
+constexpr int kStartingFences = 7;
 
-constexpr int kMaxMoves = 10;
+constexpr int kMaxMoves = 5;
 
 class Move {
  public:

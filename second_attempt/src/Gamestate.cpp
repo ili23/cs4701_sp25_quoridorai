@@ -120,8 +120,15 @@ void Gamestate::write_csv(std::ofstream& f, int winning_player) {
   // Determine outcome based on winning_player
   // winning_player = 0 means player 0 (p1) won
   // winning_player = 1 means player 1 (p2) won
-  float outcome = (p1Turn ? (winning_player == 0 ? 1.0 : -1.0) : (winning_player == 1 ? 1.0 : -1.0));
-  
+
+  float outcome;
+  if (winning_player != 2){
+    outcome = (p1Turn ? (winning_player == 0 ? 1.0 : -1.0) : (winning_player == 1 ? 1.0 : -1.0));
+  }
+  else {
+    outcome = 0;
+  }
+
   // Format: player1_pawn,player2_pawn,num_walls_player1,num_walls_player2,move_count,current_player,
   // h_wall_col0-7,v_wall_col0-7,outcome
   
@@ -207,10 +214,10 @@ Move::Move(bool h, std::pair<int, int> p) {
 Move::Move() {}
 
 Gamestate::Gamestate() {
-  p1Pos.first = 2;
-  p1Pos.second = 5;
-  p2Pos.first = 2;
-  p2Pos.second = 0;
+  p1Pos.first = 0;
+  p1Pos.second = 2;
+  p2Pos.first = 4;
+  p2Pos.second = 2;
 
   p1Turn = true;
 }
