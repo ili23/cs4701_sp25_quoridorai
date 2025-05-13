@@ -28,14 +28,29 @@ Gamestate MCTS::bestMoveApply() {
   // First, collect moves with their scores and visit counts
   std::vector<std::pair<Gamestate, float>> move_scores;
   std::vector<std::shared_ptr<Node>> move_nodes;
-  
+
+
+  float best_score = -std::numeric_limits<float>::infinity();
+  Gamestate best_move;
+
+
   for (std::shared_ptr<Node> c : root->children) {
     if (c->n > 0) {
       float score = c->w / c->n;
       move_scores.emplace_back(c->state, score);
       move_nodes.push_back(c);
+
+
+      if (score >= best_score) {
+        best_move = c->state;
+        best_score = score;
+      }
     }
   }
+
+
+ return best_move;
+
   
   // If no valid moves, return an empty state
   if (move_scores.empty()) {

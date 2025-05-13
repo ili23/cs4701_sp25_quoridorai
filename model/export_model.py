@@ -33,7 +33,7 @@ def export_model(checkpoint_path="model/checkpoints/quoridor_cnn_final.ckpt", ou
     fence_counts = torch.zeros(1, 2)
     move_count = torch.zeros(1, 1)
     example_input = (board_tensor, fence_counts, move_count)
-    traced_model = torch.jit.script(wrapped_model, (example_input,))
+    traced_model = torch.jit.trace(wrapped_model, (example_input,))
     traced_model.save(output_path)
     print("Done! The model can now be loaded in C++ using torch::jit::load()")
 

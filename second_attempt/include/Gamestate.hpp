@@ -10,7 +10,7 @@
 
 constexpr int kBoardSize = 9;
 
-constexpr int kStartingFences = 1;
+constexpr int kStartingFences = 0;
 
 constexpr int kMaxMoves = 10;
 

@@ -171,7 +171,7 @@ float Gamestate::model_evaluate(Gamestate& g) {
   using namespace torch::indexing;
 
   if (g.terminal()) {
-    return g.result() == 1 ? 1 : -1;
+    return g.result();
   }
 
   // Use game_state_to_tensors to get all necessary tensors
