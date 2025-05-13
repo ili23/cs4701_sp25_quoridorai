@@ -1,120 +1,120 @@
 #include "Gamestate.hpp"
 
-#include <torch/script.h>
-
+#include <cassert>
 #include <iostream>
 #include <queue>
-#include <cassert>
+
+#ifdef TORCH
+#include "torch/script.h"
 
 torch::jit::script::Module Gamestate::module;
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> game_state_to_tensors(
-    Gamestate & state) {
-    
-    // Create a 4x17x17 tensor to represent the board state
-    torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
-    
-    // Set player positions based on whose turn it is
-    if (state.p1Turn) {
-        // Player 0 (current player) - always in channel 0
-        int player0_row = state.p1Pos.first;
-        int player0_col = state.p1Pos.second;
-        board_tensor[0][0][player0_row][player0_col] = 1.0;
+    Gamestate& state) {
+  // Create a 4x17x17 tensor to represent the board state
+  torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
 
-        // Player 1 (opponent) - always in channel 1
-        int player1_row = state.p2Pos.first;
-        int player1_col = state.p2Pos.second;
-        board_tensor[0][1][player1_row][player1_col] = 1.0;
-        
-        // Set horizontal fences
-        for (int row = 0; row < kBoardSize; row++) {
-            for (int col = 0; col < kBoardSize; col++) {
-                if (state.hFences[row][col]) {
-                    // Set fence in position and extend it horizontally
-                    board_tensor[0][2][row][col] = 1.0;
-                    board_tensor[0][2][row][col + 1] = 1.0;
-                    board_tensor[0][2][row][col + 2] = 1.0;
-                }
-            }
-        }
-        
-        // Set vertical fences
-        for (int row = 0; row < kBoardSize; row++) {
-            for (int col = 0; col < kBoardSize; col++) {
-                if (state.vFences[row][col]) {
-                    // Set fence in position and extend it vertically
-                    board_tensor[0][3][row][col] = 1.0;
-                    board_tensor[0][3][row + 1][col] = 1.0;
-                    board_tensor[0][3][row + 2][col] = 1.0;
-                }
-            }
-        }
-    } else {
-        // If p2's turn, swap the perspective and flip the board
-        
-        // Player 0 (current player) - always in channel 0
-        // Flip positions - for row/col we use (kBoardSize - 1 - pos)
-        int player0_row = kBoardSize - 1 - state.p2Pos.first;
-        int player0_col = kBoardSize - 1 - state.p2Pos.second;
-        board_tensor[0][0][player0_row][player0_col] = 1.0;
+  // Set player positions based on whose turn it is
+  if (state.p1Turn) {
+    // Player 0 (current player) - always in channel 0
+    int player0_row = state.p1Pos.first;
+    int player0_col = state.p1Pos.second;
+    board_tensor[0][0][player0_row][player0_col] = 1.0;
 
-        // Player 1 (opponent) - always in channel 1
-        int player1_row = kBoardSize - 1 - state.p1Pos.first;
-        int player1_col = kBoardSize - 1 - state.p1Pos.second;
-        board_tensor[0][1][player1_row][player1_col] = 1.0;
-        
-        // Set horizontal fences - flip positions
-        for (int row = 0; row < kBoardSize; row++) {
-            for (int col = 0; col < kBoardSize; col++) {
-                // When flipping the board, horizontal fences remain horizontal
-                // but their position changes
-                int flipped_row = kBoardSize - 1 - row;
-                int flipped_col = kBoardSize - 1 - col - 2; // Account for fence length
-                
-                if (flipped_col >= 0 && state.hFences[row][col]) {
-                    // Set fence in position and extend it horizontally
-                    board_tensor[0][2][flipped_row][flipped_col] = 1.0;
-                    board_tensor[0][2][flipped_row][flipped_col + 1] = 1.0;
-                    board_tensor[0][2][flipped_row][flipped_col + 2] = 1.0;
-                }
-            }
+    // Player 1 (opponent) - always in channel 1
+    int player1_row = state.p2Pos.first;
+    int player1_col = state.p2Pos.second;
+    board_tensor[0][1][player1_row][player1_col] = 1.0;
+
+    // Set horizontal fences
+    for (int row = 0; row < kBoardSize; row++) {
+      for (int col = 0; col < kBoardSize; col++) {
+        if (state.hFences[row][col]) {
+          // Set fence in position and extend it horizontally
+          board_tensor[0][2][row][col] = 1.0;
+          board_tensor[0][2][row][col + 1] = 1.0;
+          board_tensor[0][2][row][col + 2] = 1.0;
         }
-        
-        // Set vertical fences - flip positions
-        for (int row = 0; row < kBoardSize; row++) {
-            for (int col = 0; col < kBoardSize; col++) {
-                // When flipping the board, vertical fences remain vertical
-                // but their position changes
-                int flipped_row = kBoardSize - 1 - row - 2; // Account for fence length
-                int flipped_col = kBoardSize - 1 - col;
-                
-                if (flipped_row >= 0 && state.vFences[row][col]) {
-                    // Set fence in position and extend it vertically
-                    board_tensor[0][3][flipped_row][flipped_col] = 1.0;
-                    board_tensor[0][3][flipped_row + 1][flipped_col] = 1.0;
-                    board_tensor[0][3][flipped_row + 2][flipped_col] = 1.0;
-                }
-            }
+      }
+    }
+
+    // Set vertical fences
+    for (int row = 0; row < kBoardSize; row++) {
+      for (int col = 0; col < kBoardSize; col++) {
+        if (state.vFences[row][col]) {
+          // Set fence in position and extend it vertically
+          board_tensor[0][3][row][col] = 1.0;
+          board_tensor[0][3][row + 1][col] = 1.0;
+          board_tensor[0][3][row + 2][col] = 1.0;
         }
+      }
     }
-    
-    // Create fence counts tensor - always from current player's perspective
-    torch::Tensor fence_counts = torch::zeros({1, 2});
-    if (state.p1Turn) {
-        fence_counts[0][0] = state.p1Fences;  // Current player fences
-        fence_counts[0][1] = state.p2Fences;  // Opponent fences
-    } else {
-        fence_counts[0][0] = state.p2Fences;  // Current player fences
-        fence_counts[0][1] = state.p1Fences;  // Opponent fences
+  } else {
+    // If p2's turn, swap the perspective and flip the board
+
+    // Player 0 (current player) - always in channel 0
+    // Flip positions - for row/col we use (kBoardSize - 1 - pos)
+    int player0_row = kBoardSize - 1 - state.p2Pos.first;
+    int player0_col = kBoardSize - 1 - state.p2Pos.second;
+    board_tensor[0][0][player0_row][player0_col] = 1.0;
+
+    // Player 1 (opponent) - always in channel 1
+    int player1_row = kBoardSize - 1 - state.p1Pos.first;
+    int player1_col = kBoardSize - 1 - state.p1Pos.second;
+    board_tensor[0][1][player1_row][player1_col] = 1.0;
+
+    // Set horizontal fences - flip positions
+    for (int row = 0; row < kBoardSize; row++) {
+      for (int col = 0; col < kBoardSize; col++) {
+        // When flipping the board, horizontal fences remain horizontal
+        // but their position changes
+        int flipped_row = kBoardSize - 1 - row;
+        int flipped_col = kBoardSize - 1 - col - 2;  // Account for fence length
+
+        if (flipped_col >= 0 && state.hFences[row][col]) {
+          // Set fence in position and extend it horizontally
+          board_tensor[0][2][flipped_row][flipped_col] = 1.0;
+          board_tensor[0][2][flipped_row][flipped_col + 1] = 1.0;
+          board_tensor[0][2][flipped_row][flipped_col + 2] = 1.0;
+        }
+      }
     }
-    
-    // Create move count tensor
-    torch::Tensor move_count = torch::zeros({1, 1});
-    move_count[0][0] = state.moveCount;
-    
-    return {board_tensor, fence_counts, move_count};
+
+    // Set vertical fences - flip positions
+    for (int row = 0; row < kBoardSize; row++) {
+      for (int col = 0; col < kBoardSize; col++) {
+        // When flipping the board, vertical fences remain vertical
+        // but their position changes
+        int flipped_row = kBoardSize - 1 - row - 2;  // Account for fence length
+        int flipped_col = kBoardSize - 1 - col;
+
+        if (flipped_row >= 0 && state.vFences[row][col]) {
+          // Set fence in position and extend it vertically
+          board_tensor[0][3][flipped_row][flipped_col] = 1.0;
+          board_tensor[0][3][flipped_row + 1][flipped_col] = 1.0;
+          board_tensor[0][3][flipped_row + 2][flipped_col] = 1.0;
+        }
+      }
+    }
+  }
+
+  // Create fence counts tensor - always from current player's perspective
+  torch::Tensor fence_counts = torch::zeros({1, 2});
+  if (state.p1Turn) {
+    fence_counts[0][0] = state.p1Fences;  // Current player fences
+    fence_counts[0][1] = state.p2Fences;  // Opponent fences
+  } else {
+    fence_counts[0][0] = state.p2Fences;  // Current player fences
+    fence_counts[0][1] = state.p1Fences;  // Opponent fences
+  }
+
+  // Create move count tensor
+  torch::Tensor move_count = torch::zeros({1, 1});
+  move_count[0][0] = state.moveCount;
+
+  return {board_tensor, fence_counts, move_count};
 }
-
+#endif
 
 void Gamestate::write_csv(std::ofstream& f, int winning_player) {
   // Determine outcome based on winning_player
@@ -122,65 +122,69 @@ void Gamestate::write_csv(std::ofstream& f, int winning_player) {
   // winning_player = 1 means player 1 (p2) won
 
   float outcome;
-  if (winning_player != 2){
-    outcome = (p1Turn ? (winning_player == 0 ? 1.0 : -1.0) : (winning_player == 1 ? 1.0 : -1.0));
-  }
-  else {
+  if (winning_player != 2) {
+    outcome = (p1Turn ? (winning_player == 0 ? 1.0 : -1.0)
+                      : (winning_player == 1 ? 1.0 : -1.0));
+  } else {
     outcome = 0;
   }
 
-  // Format: player1_pawn,player2_pawn,num_walls_player1,num_walls_player2,move_count,current_player,
+  // Format:
+  // player1_pawn,player2_pawn,num_walls_player1,num_walls_player2,move_count,current_player,
   // h_wall_col0-7,v_wall_col0-7,outcome
-  
+
   // Player positions formatted as "row|col"
   f << p1Pos.first << "|" << p1Pos.second << ",";
   f << p2Pos.first << "|" << p2Pos.second << ",";
-  
+
   // Number of walls for each player
   f << p1Fences << "," << p2Fences << ",";
-  
+
   // Move count
   f << moveCount << ",";
-  
+
   // Current player (0 for p1, 1 for p2)
   f << (p1Turn ? 0 : 1) << ",";
-  
+
   // Horizontal walls for each column
   for (int col = 0; col < 8; col++) {
     // Format horizontal walls as pipe-separated values
     for (int row = 0; row < 8; row++) {
       // Add 1 if there's a wall, 0 otherwise
-      if (row > 0) f << "|"; // Add pipe separator between values
-      f << (row < kBoardSize-1 && hFences[row][col] ? "1" : "0");
+      if (row > 0) f << "|";  // Add pipe separator between values
+      f << (row < kBoardSize - 1 && hFences[row][col] ? "1" : "0");
     }
     if (col < 7) f << ",";
   }
-  
+
   // Add comma between h_walls and v_walls
   f << ",";
-  
+
   // Vertical walls for each column
   for (int col = 0; col < 8; col++) {
     // Format vertical walls as pipe-separated values
     for (int row = 0; row < 8; row++) {
       // Add 1 if there's a wall, 0 otherwise
-      if (row > 0) f << "|"; // Add pipe separator between values
-      f << (row < kBoardSize-1 && vFences[row][col] ? "1" : "0");
+      if (row > 0) f << "|";  // Add pipe separator between values
+      f << (row < kBoardSize - 1 && vFences[row][col] ? "1" : "0");
     }
     if (col < 7) f << ",";
   }
-  
+
   // Write the outcome
   f << "," << outcome << std::endl;
 }
 
 float Gamestate::model_evaluate(Gamestate& g) {
+#ifdef TORCH
   using namespace torch::indexing;
+#endif
 
   if (g.terminal()) {
     return g.result();
   }
 
+#ifdef TORCH
   // Use game_state_to_tensors to get all necessary tensors
   auto [board_tensor, fence_counts, move_count] = game_state_to_tensors(g);
 
@@ -193,6 +197,9 @@ float Gamestate::model_evaluate(Gamestate& g) {
   torch::Tensor output = module.forward(inputs).toTensor();
 
   return output.item<float>();
+#else
+  return 0;
+#endif
 }
 
 Move::Move(int x, int y) {
@@ -302,7 +309,8 @@ bool inBounds(std::pair<int, int> x) {
 }
 
 bool Gamestate::terminal() {
-  return p1Pos.first == kBoardSize - 1 || p2Pos.first == 0 || moveCount >= kMaxMoves;
+  return p1Pos.first == kBoardSize - 1 || p2Pos.first == 0 ||
+         moveCount >= kMaxMoves;
 }
 
 float Gamestate::result() {

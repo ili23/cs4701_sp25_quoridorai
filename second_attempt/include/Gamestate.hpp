@@ -1,11 +1,13 @@
 #pragma once
 
+#ifdef TORCH
 #include <torch/script.h>
+#endif
 
+#include <fstream>
 #include <functional>  // For std::hash
 #include <memory>
 #include <utility>
-#include <fstream>
 #include <vector>
 
 constexpr int kBoardSize = 5;
@@ -34,9 +36,11 @@ class Gamestate {
  public:
   Gamestate();
 
-  void write_csv(std::ofstream &f, int winning_player);
+  void write_csv(std::ofstream& f, int winning_player);
 
+#ifdef TORCH
   static torch::jit::script::Module module;
+#endif
 
   static float model_evaluate(Gamestate& g);
 
@@ -56,7 +60,8 @@ class Gamestate {
   // between space (x, y) and (x, y + 1)
   bool vFences[kBoardSize][kBoardSize] = {};
 
-  bool p1Turn; // True if p1 is the current player, false if p2 is the current player
+  bool p1Turn;  // True if p1 is the current player, false if p2 is the current
+                // player
 
   void displayBoard();
 

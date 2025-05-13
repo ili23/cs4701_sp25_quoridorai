@@ -1,21 +1,23 @@
-#include <torch/script.h>
-
 #include <fstream>
 #include <iostream>
 #include <vector>
 
 #include "MCTS.hpp"
 
+#ifdef TORCH
+#include <torch/script.h>
+#endif
 
 constexpr int kRandomMovesCount = 6;
 constexpr int kGameCount = 5;
 
-
 int main(int argc, const char* argv[]) {
+#ifdef TORCH
   if (argc != 2) {
     std::cerr << "usage: example-app <path-to-exported-script-module>\n";
     return -1;
   }
+#endif
 
   int i = 0;
 
@@ -24,12 +26,14 @@ int main(int argc, const char* argv[]) {
 
     Gamestate gs;
 
+#ifdef TORCH
     try {
       Gamestate::module = torch::jit::load(argv[1]);
     } catch (const c10::Error& e) {
       std::cerr << "Error loading the model: " << e.what() << std::endl;
       return -1;
     }
+#endif
 
     std::vector<Gamestate> positions;
 
@@ -37,10 +41,9 @@ int main(int argc, const char* argv[]) {
     while (!gs.terminal()) {
       tree.startNewSearch(gs);
 
-      if (moves_made < kRandomMovesCount){
+      if (moves_made < kRandomMovesCount) {
         gs = tree.randomMoveApply();
-      }
-      else{
+      } else {
         tree.iterate(10000);
         gs = tree.bestMoveApply();
       }
