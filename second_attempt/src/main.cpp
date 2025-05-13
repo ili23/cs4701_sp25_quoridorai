@@ -2,14 +2,12 @@
 #include <iostream>
 #include <vector>
 
+#include "Constants.hpp"
 #include "MCTS.hpp"
 
 #ifdef TORCH
 #include <torch/script.h>
 #endif
-
-constexpr int kRandomMovesCount = 6;
-constexpr int kGameCount = 5;
 
 int main(int argc, const char* argv[]) {
 #ifdef TORCH
@@ -20,6 +18,30 @@ int main(int argc, const char* argv[]) {
 #endif
 
   int i = 0;
+
+  int lines_written = 0;
+  int file_num = 0;
+
+  std::ofstream myfile;
+  std::string path = "data/gamestate" + std::to_string(file_num) + ".csv";
+  myfile.open(path);
+
+  // Write column headers
+  myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
+            "move_count,current_player,";
+  // Horizontal wall headers
+  for (int i = 0; i < kBoardSize - 1; i++) {
+    myfile << "h_wall_col" << i;
+    myfile << ",";
+  }
+
+  // Vertical wall headers
+  for (int i = 0; i < kBoardSize - 1; i++) {
+    myfile << "v_wall_col" << i;
+    myfile << ",";
+  }
+
+  myfile << "outcome" << std::endl;
 
   while (i < kGameCount) {
     MCTS tree;
@@ -44,17 +66,43 @@ int main(int argc, const char* argv[]) {
       if (moves_made < kRandomMovesCount) {
         gs = tree.randomMoveApply();
       } else {
-        tree.iterate(10000);
-        gs = tree.bestMoveApply();
+        tree.iterate(kSearchIterations);
+
+        if (moves_made % 2 == 0 && kPlayerInput) {
+          int x;
+          tree.root->expand();
+          std::cout << "There are " << tree.root->children.size()
+                    << " possible moves." << std::endl;
+
+          for (size_t index = 0; index < tree.root->children.size(); index++) {
+            std::cout << index << ". "
+                      << tree.root->children[index]->m.to_string() << "\t\t"
+                      << tree.root->children[index]->w << " "
+                      << tree.root->children[index]->n << std::endl;
+          }
+
+          std::cin >> x;
+          gs = tree.applyMove(x);
+        } else {
+          // std::cout << "==CONSIDERING=====" << std::endl;
+          // tree.root->displayChildren();
+          // std::cout << "==done CONSIDERING=====" << std::endl;
+
+          gs = tree.bestMoveApply();
+        }
       }
 
-      moves_made++;
+      std::cout << "Move: " << moves_made << std::endl;
 
       std::cout << "W " << tree.root->w << " N " << tree.root->n << std::endl;
 
       gs.displayBoard();
 
-      positions.push_back(gs);
+      if (moves_made >= kRandomMovesCount) {
+        positions.push_back(gs);
+      }
+
+      moves_made++;
     }
 
     // Determine the winning player from the final game state
@@ -71,35 +119,44 @@ int main(int argc, const char* argv[]) {
     }
 
     // Write positions to a csv
-    std::ofstream myfile;
-    std::string path = "data/gamestate" + std::to_string(i) + ".csv";
-    myfile.open(path);
-
-    // Write column headers
-    myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
-              "move_count,current_player,";
-
-    // Horizontal wall headers
-    for (int i = 0; i < kBoardSize - 1; i++) {
-      myfile << "h_wall_col" << i;
-      myfile << ",";
-    }
-
-    // Vertical wall headers
-    for (int i = 0; i < kBoardSize - 1; i++) {
-      myfile << "v_wall_col" << i;
-      myfile << ",";
-    }
-
-    myfile << "outcome" << std::endl;
 
     for (auto gs : positions) {
       gs.write_csv(myfile, winning_player);
     }
 
-    myfile.close();
+    lines_written += positions.size();
+
+    // Open a new file
+    if (lines_written > kMaxFileSize) {
+      myfile.close();
+      file_num++;
+      lines_written = 0;
+      path = "data/gamestate" + std::to_string(file_num) + ".csv";
+      myfile.open(path);
+
+      // Write column headers
+      myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
+                "move_count,current_player,";
+
+      // Horizontal wall headers
+      for (int i = 0; i < kBoardSize - 1; i++) {
+        myfile << "h_wall_col" << i;
+        myfile << ",";
+      }
+
+      // Vertical wall headers
+      for (int i = 0; i < kBoardSize - 1; i++) {
+        myfile << "v_wall_col" << i;
+        myfile << ",";
+      }
+      myfile << "outcome" << std::endl;
+    }
 
     i++;
+  }
+
+  if (myfile.is_open()) {
+    myfile.close();
   }
 
   return 0;

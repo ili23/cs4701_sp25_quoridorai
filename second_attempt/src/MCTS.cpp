@@ -1,13 +1,13 @@
 #include "MCTS.hpp"
 
 #include <algorithm>
-#include <random>
 #include <cmath>    // For std::exp
 #include <cstdlib>  // For rand() and srand()
 #include <ctime>    // For time()
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <random>
 #include <vector>
 
 #include "Gamestate.hpp"
@@ -40,6 +40,14 @@ Gamestate MCTS::randomMoveApply() {
   random_move = root->children[random_number]->state;
 
   return random_move;
+}
+
+Gamestate MCTS::applyMove(int m) {
+  root->expand();
+
+  Gamestate selected_move = root->children[m]->state;
+
+  return selected_move;
 }
 
 Gamestate MCTS::bestMoveApply() {

@@ -10,11 +10,7 @@
 #include <utility>
 #include <vector>
 
-constexpr int kBoardSize = 5;
-
-constexpr int kStartingFences = 7;
-
-constexpr int kMaxMoves = 15;
+#include "Constants.hpp"
 
 class Move {
  public:
@@ -30,6 +26,8 @@ class Move {
   std::pair<int, int> pos;
   bool pawnMove;
   bool hFence;
+
+  std::string to_string();
 };
 
 class Gamestate {

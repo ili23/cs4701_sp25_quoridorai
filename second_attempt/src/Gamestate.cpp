@@ -218,13 +218,28 @@ Move::Move(bool h, std::pair<int, int> p) {
   pos = p;
 }
 
+std::string Move::to_string() {
+  if (pawnMove) {
+    return "Pawn to " + std::to_string(pos.first) + ", " +
+           std::to_string(pos.second);
+  }
+
+  if (hFence) {
+    return "Horizontal fence at " + std::to_string(pos.first) + ", " +
+           std::to_string(pos.second);
+  }
+
+  return "Vertical fence at " + std::to_string(pos.first) + ", " +
+         std::to_string(pos.second);
+}
+
 Move::Move() {}
 
 Gamestate::Gamestate() {
-  p1Pos.first = 0;
-  p1Pos.second = 2;
-  p2Pos.first = 4;
-  p2Pos.second = 2;
+  p1Pos.first = p1_start_first;
+  p1Pos.second = p1_start_second;
+  p2Pos.first = p2_start_first;
+  p2Pos.second = p2_start_second;
 
   p1Turn = true;
 }
@@ -273,7 +288,12 @@ void Gamestate::displayBoard() {
       }
     }
   }
-  std::cout << "  ---- ---- ---- ---- ---- ---- ---- ---- ----" << std::endl;
+
+  std::cout << "  ";
+  for (size_t i = 0; i < kBoardSize; i++) {
+    std::cout << "---- ";
+  }
+  std::cout << std::endl;
 }
 
 std::unique_ptr<Gamestate> Gamestate::applyMove(const Move& m) const {
