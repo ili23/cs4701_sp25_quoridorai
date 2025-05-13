@@ -4,7 +4,6 @@
 #include <iostream>
 #include <vector>
 
-
 #include "MCTS.hpp"
 
 int main(int argc, const char* argv[]) {
@@ -16,9 +15,7 @@ int main(int argc, const char* argv[]) {
   int i = 0;
   int total_games = 10000;
 
-  while(i < total_games){
-
-
+  while (i < total_games) {
     MCTS tree;
 
     Gamestate gs;
@@ -34,7 +31,7 @@ int main(int argc, const char* argv[]) {
 
     while (!gs.terminal()) {
       tree.startNewSearch(gs);
-      
+
       tree.iterate(10000);
 
       gs = tree.bestMoveApply();
@@ -51,11 +48,11 @@ int main(int argc, const char* argv[]) {
     if (gs.terminal()) {
       float result = gs.result();
       if (result == 1.0) {
-        winning_player = 0; // Player 0 (p1) won
+        winning_player = 0;  // Player 0 (p1) won
       } else if (result == -1.0) {
-        winning_player = 1; // Player 1 (p2) won
+        winning_player = 1;  // Player 1 (p2) won
       } else {
-        winning_player = 2; // Draw
+        winning_player = 2;  // Draw
       }
     }
 
@@ -65,23 +62,22 @@ int main(int argc, const char* argv[]) {
     myfile.open(path);
 
     // Write column headers
-    myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,move_count,current_player,";
-    
+    myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
+              "move_count,current_player,";
+
     // Horizontal wall headers
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < kBoardSize - 1; i++) {
       myfile << "h_wall_col" << i;
-      if (i < 7) myfile << ",";
+      myfile << ",";
     }
-    
-    myfile << ",";
-    
+
     // Vertical wall headers
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < kBoardSize - 1; i++) {
       myfile << "v_wall_col" << i;
-      if (i < 7) myfile << ",";
+      myfile << ",";
     }
-    
-    myfile << ",outcome" << std::endl;
+
+    myfile << "outcome" << std::endl;
 
     for (auto gs : positions) {
       gs.write_csv(myfile, winning_player);

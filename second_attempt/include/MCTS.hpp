@@ -17,6 +17,8 @@ class MCTS {
 
   Gamestate bestMoveApply();
 
+  Gamestate randomMoveApply();
+
   std::shared_ptr<Node> root;
 
  private:
