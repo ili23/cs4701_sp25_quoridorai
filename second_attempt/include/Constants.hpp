@@ -2,7 +2,7 @@
 
 constexpr int kSearchIterations = 100000;
 
-constexpr int kBoardSize = 5;
+constexpr int kBoardSize = 9;
 
 constexpr int kStartingFences = 10;
 
