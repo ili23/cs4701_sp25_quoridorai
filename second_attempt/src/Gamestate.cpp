@@ -560,7 +560,7 @@ std::vector<Move> Gamestate::getPawnMoves() {
       moves.emplace_back(target);
     }
   }
-  std::cout << "Number of pawn moves: " << moves.size() << std::endl;
+
 
   // Check if opponent is adjacent
   int dx = otherPawn.first - startingPoint.first;

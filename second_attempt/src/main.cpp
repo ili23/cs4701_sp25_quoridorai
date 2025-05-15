@@ -207,7 +207,7 @@ int main(int argc, const char* argv[]) {
       // std::cout << "W " << tree.root->w << " N " << tree.root->n <<
       // std::endl;
 
-      // gs.displayBoard();
+      gs.displayBoard();
       moves_made++;
     }
 
