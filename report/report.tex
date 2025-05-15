@@ -70,6 +70,16 @@ MCTS is a method of evaluating and iteratively expanding a game tree, the tree o
 
 Exploitation, on the other hand, focuses on more deeply expanding a few promising ideas. The first layers of analysis indicate that these moves are encouraging, and a deeper analysis could determine which is the absolute best. With limited computing time and resouces, it is impossible to fully explore both exploration and exploitation. MCTS provides a method to find an equilibrium between devoting all the resouces to one or the other.
 
+MCTS is performed iteratively. The primary data structure is a tree, with nodes that represent possible game states and edges that represent a possible move. The children of a node are all the possible moves that a player could make given the current position. An iteration of the MCTS expands one leaf node of the tree to consider one more move into the future along that branch of play. Each iteration has four phases: selection, expansion, evaluation, and backpropagation.
+
+\subsubsection{Selection}
+
+\subsubsection{Expansion}
+
+\subsubsection{Evaluation}
+
+\subsubsection{Backpropagation}
+
 \subsection{Heuristics}
 
 If a game tree can be fully expanded, one can use trivial algorithms to determine which player can force a win. (The Minimax decision rule is one example.\textbf{CITATION HERE}) When the game tree cannot be fully expanded, it is necessary to create a heuristic that can determine the value of a position. The value of a position is a scalar value that indicates which player is more likely to win. The accuracy of the heuristic function is directly correlated with the playing strength of the AI agnet. A perfect heuristic that could always determine which player has forced win would lead to an optimal AI agent. In this paper, we compare five distinct heuristic methods:
