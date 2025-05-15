@@ -51,19 +51,17 @@ class Gamestate {
   // Horizontal fences are defined to be to the right of the space they are
   // listed on That is, a fence at (x, y) indicates that players can no longer
   // move between space (x, y) and (x + 1, y)
-  bool hFences[kBoardSize][kBoardSize] = {};
+  bool hFences[kBoardSize-1][kBoardSize-1] = {};
 
   // Vertical fences are defined to be above the space they are listed on.
   // That is, a fence at (x, y) indicates that players can no longer move
   // between space (x, y) and (x, y + 1)
-  bool vFences[kBoardSize][kBoardSize] = {};
+  bool vFences[kBoardSize-1][kBoardSize-1] = {};
 
   bool p1Turn;  // True if p1 is the current player, false if p2 is the current
                 // player
 
   void displayBoard();
-
-  void displayAllMoves();
 
   std::unique_ptr<Gamestate> applyMove(const Move& m) const;
 
@@ -78,6 +76,9 @@ class Gamestate {
 
   bool pathToEnd(bool p1);
 
+  // Checks if a basic pawn move in a given direction is valid
+  bool isValidBasicPawnMove(const std::pair<int, int>& startingPoint, int dx, int dy, const std::pair<int, int>& otherPawn) const;
+
   // Return true if the game is over
   bool terminal();
 
@@ -90,9 +91,9 @@ class Gamestate {
            p1Fences == other.p1Fences && p2Fences == other.p2Fences &&
            p1Turn == other.p1Turn &&
            // Compare fence arrays
-           std::equal(&hFences[0][0], &hFences[0][0] + kBoardSize * kBoardSize,
+           std::equal(&hFences[0][0], &hFences[0][0] + (kBoardSize-1) * (kBoardSize-1),
                       &other.hFences[0][0]) &&
-           std::equal(&vFences[0][0], &vFences[0][0] + kBoardSize * kBoardSize,
+           std::equal(&vFences[0][0], &vFences[0][0] + (kBoardSize-1) * (kBoardSize-1),
                       &other.vFences[0][0]);
   }
 
@@ -126,8 +127,8 @@ struct hash<Gamestate> {
     seed ^= hash<bool>()(state.p1Turn) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
     // Hash the fence arrays (simplified for performance)
-    for (int i = 0; i < kBoardSize; i++) {
-      for (int j = 0; j < kBoardSize; j++) {
+    for (int i = 0; i < kBoardSize-1; i++) {
+      for (int j = 0; j < kBoardSize-1; j++) {
         seed ^= hash<bool>()(state.hFences[i][j]) + 0x9e3779b9 + (seed << 6) +
                 (seed >> 2);
         seed ^= hash<bool>()(state.vFences[i][j]) + 0x9e3779b9 + (seed << 6) +
@@ -140,4 +141,4 @@ struct hash<Gamestate> {
 };
 }  // namespace std
 
-float evaluate(Gamestate& g);
+float evaluate(Gamestate& g); 
