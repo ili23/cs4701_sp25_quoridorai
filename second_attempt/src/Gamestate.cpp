@@ -583,15 +583,15 @@ std::vector<Move> Gamestate::getPawnMoves() {
       // Use the same fence checking logic as for basic moves
       if (dx == 0) {   // Vertical jump
         if (dy > 0) {  // Jumping up
-          canJump = !vFences[otherPawn.first][otherPawn.second];
+          canJump = !vFences[otherPawn.first][otherPawn.second] && !vFences[otherPawn.first - 1][otherPawn.second];
         } else {  // Jumping down
-          canJump = !vFences[otherPawn.first][otherPawn.second - 1];
+          canJump = !vFences[otherPawn.first][otherPawn.second - 1] && !vFences[otherPawn.first - 1][otherPawn.second - 1];
         }
       } else {         // Horizontal jump
         if (dx > 0) {  // Jumping right
-          canJump = !hFences[otherPawn.first][otherPawn.second];
+          canJump = !hFences[otherPawn.first][otherPawn.second]  && !hFences[otherPawn.first][otherPawn.second - 1];
         } else {  // Jumping left
-          canJump = !hFences[otherPawn.first - 1][otherPawn.second];
+          canJump = !hFences[otherPawn.first - 1][otherPawn.second] && !hFences[otherPawn.first - 1][otherPawn.second - 1];
         }
       }
 
