@@ -7,8 +7,11 @@ class Node : public std::enable_shared_from_this<Node> {
  public:
   Node(Gamestate &g);
   Node(Gamestate &g, std::shared_ptr<Node> parent);
+  Node(Gamestate &g, std::shared_ptr<Node> parent, Move m);
 
   Gamestate state;
+
+  Move m;
 
   float w, n;
 
@@ -19,6 +22,8 @@ class Node : public std::enable_shared_from_this<Node> {
   std::vector<std::shared_ptr<Node>> children;
 
   std::shared_ptr<Node> expand();
+
+  void displayChildren();
 
   float score();
 

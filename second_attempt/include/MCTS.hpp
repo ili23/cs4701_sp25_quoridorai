@@ -11,11 +11,13 @@ class MCTS {
 
   void iterate(int n);
 
-  void applyMove(Move m);
+  Gamestate applyMove(int);
 
   Gamestate bestMove();
 
   Gamestate bestMoveApply();
+
+  Gamestate randomMoveApply();
 
   std::shared_ptr<Node> root;
 

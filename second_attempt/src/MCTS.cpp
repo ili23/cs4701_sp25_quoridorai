@@ -1,13 +1,14 @@
 #include "MCTS.hpp"
 
 #include <algorithm>
+#include <cmath>    // For std::exp
+#include <cstdlib>  // For rand() and srand()
+#include <ctime>    // For time()
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <random>
 #include <vector>
-#include <cstdlib>   // For rand() and srand()
-#include <ctime>     // For time()
-#include <cmath>     // For std::exp
 
 #include "Gamestate.hpp"
 
@@ -16,7 +17,7 @@ MCTS::MCTS() {
   std::srand(static_cast<unsigned int>(std::time(nullptr)));
 };
 
-void MCTS::startNewSearch(Gamestate &g) { root = std::make_unique<Node>(g); }
+void MCTS::startNewSearch(Gamestate& g) { root = std::make_unique<Node>(g); }
 
 void MCTS::iterate(int n) {
   for (int i = 0; i < n; i++) {
@@ -24,22 +25,44 @@ void MCTS::iterate(int n) {
   }
 }
 
+std::random_device rd;   // Seed
+std::mt19937 gen(rd());  // Mersenne Twister generator
+
+Gamestate MCTS::randomMoveApply() {
+  root->expand();
+
+  std::uniform_int_distribution<> dist(0, root->children.size() - 1);
+
+  int random_number = dist(gen);
+
+  Gamestate random_move;
+
+  random_move = root->children[random_number]->state;
+
+  return random_move;
+}
+
+Gamestate MCTS::applyMove(int m) {
+  root->expand();
+
+  Gamestate selected_move = root->children[m]->state;
+
+  return selected_move;
+}
+
 Gamestate MCTS::bestMoveApply() {
   // First, collect moves with their scores and visit counts
   std::vector<std::pair<Gamestate, float>> move_scores;
   std::vector<std::shared_ptr<Node>> move_nodes;
 
-
   float best_score = -std::numeric_limits<float>::infinity();
   Gamestate best_move;
-
 
   for (std::shared_ptr<Node> c : root->children) {
     if (c->n > 0) {
       float score = c->w / c->n;
       move_scores.emplace_back(c->state, score);
       move_nodes.push_back(c);
-
 
       if (score >= best_score) {
         best_move = c->state;
@@ -48,40 +71,39 @@ Gamestate MCTS::bestMoveApply() {
     }
   }
 
+  return best_move;
 
- return best_move;
-
-  
   // If no valid moves, return an empty state
   if (move_scores.empty()) {
     return Gamestate();
   }
-  
+
   // Apply softmax to the scores to get a probability distribution
   std::vector<float> probabilities;
-  
+
   // First, find the maximum score for numerical stability in softmax
   float max_score = -std::numeric_limits<float>::infinity();
   for (const auto& move : move_scores) {
     max_score = std::max(max_score, move.second);
   }
-  
+
   // Calculate the softmax denominator
   float softmax_denom = 0.0f;
   for (const auto& move : move_scores) {
-    softmax_denom += std::exp((move.second - max_score) * 5.0f); // Temperature parameter of 0.2 (1/5)
+    softmax_denom += std::exp((move.second - max_score) *
+                              5.0f);  // Temperature parameter of 0.2 (1/5)
   }
-  
+
   // Calculate the softmax probabilities
   for (const auto& move : move_scores) {
     float prob = std::exp((move.second - max_score) * 5.0f) / softmax_denom;
     probabilities.push_back(prob);
   }
-  
+
   // Sample a move based on the distribution
   float random_val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
   float cumulative_prob = 0.0;
-  
+
   for (size_t i = 0; i < probabilities.size(); i++) {
     cumulative_prob += probabilities[i];
     if (random_val <= cumulative_prob) {
@@ -89,7 +111,7 @@ Gamestate MCTS::bestMoveApply() {
       return move_scores[i].first;
     }
   }
-  
+
   // Fallback (should rarely happen due to floating point precision)
   root = move_nodes.back();
   return move_scores.back().first;

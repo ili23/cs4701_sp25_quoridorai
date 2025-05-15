@@ -6,7 +6,7 @@
 
 #include "Gamestate.hpp"
 
-constexpr float c = 0;
+constexpr float c = 1.4142135;
 
 Node::Node(Gamestate &g) {
   w = 0;
@@ -25,6 +25,27 @@ Node::Node(Gamestate &g, std::shared_ptr<Node> p) {
   childrenExpanded = false;
   terminal = state.terminal();
   parent = p;
+}
+
+Node::Node(Gamestate &g, std::shared_ptr<Node> p, Move m_) {
+  w = 0;
+  n = 0;
+
+  m = m_;
+
+  state = g;
+  childrenExpanded = false;
+  terminal = state.terminal();
+  parent = p;
+}
+
+void Node::displayChildren() {
+  for (auto c : children) {
+    std::cout << "Possible move:" << std::endl;
+    std::cout << "W " << c->w << " N " << c->n << std::endl;
+    c->state.displayBoard();
+    std::cout << std::endl << std::endl;
+  }
 }
 
 float Node::score() {
@@ -50,8 +71,8 @@ std::shared_ptr<Node> Node::expand() {
 
   std::vector<Move> m = state.getMoves();
   for (Move move : m) {
-    children.emplace_back(
-        std::make_shared<Node>(*state.applyMove(move), shared_from_this()));
+    children.emplace_back(std::make_shared<Node>(*state.applyMove(move),
+                                                 shared_from_this(), move));
   }
 
   childrenExpanded = true;

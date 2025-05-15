@@ -103,40 +103,64 @@ class QuoridorDataset(Dataset):
         for i in range(self.board_size - 1):
             for j in range(self.board_size - 1):
                 if flip_perspective:
-                    # Flip row index for horizontal fences if needed
+                    # Flip both row and column indices for horizontal fences
                     flipped_i = (self.board_size - 2) - i
-                    has_wall = h_fences[flipped_i][j]
+                    flipped_j = (self.board_size - 2) - j
+                    has_wall = h_fences[flipped_i][flipped_j]
+                    
+                    if has_wall:
+                        # Convert to 17x17 grid coordinates
+                        # Horizontal walls are at (2i+1, 2j)
+                        grid_row, grid_col = 2*i + 1, 2*j
+                        # Account for fence length when flipping
+                        if grid_col + 2 < self.grid_size:
+                            # Set wall position in tensor - channel 2 for horizontal walls
+                            board_tensor[2, grid_row, grid_col] = 1
+                            board_tensor[2, grid_row, grid_col + 1] = 1
+                            board_tensor[2, grid_row, grid_col + 2] = 1
                 else:
                     has_wall = h_fences[i][j]
-                
-                if has_wall:
-                    # Convert to 17x17 grid coordinates
-                    # Horizontal walls are at (2i+1, 2j)
-                    grid_row, grid_col = 2*i + 1, 2*j
-                    # Set wall position in tensor - channel 2 for horizontal walls
-                    board_tensor[2, grid_row, grid_col] = 1
-                    board_tensor[2, grid_row, grid_col + 1] = 1
-                    board_tensor[2, grid_row, grid_col + 2] = 1
+                    
+                    if has_wall:
+                        # Convert to 17x17 grid coordinates
+                        # Horizontal walls are at (2i+1, 2j)
+                        grid_row, grid_col = 2*i + 1, 2*j
+                        # Set wall position in tensor - channel 2 for horizontal walls
+                        board_tensor[2, grid_row, grid_col] = 1
+                        board_tensor[2, grid_row, grid_col + 1] = 1
+                        board_tensor[2, grid_row, grid_col + 2] = 1
         
         # Place vertical walls on the 17x17 grid - Channel 3
         # Vertical walls occupy even row, odd column indices on the 17x17 grid
         for i in range(self.board_size - 1):
             for j in range(self.board_size - 1):
                 if flip_perspective:
-                    # Flip row index for vertical fences if needed
+                    # Flip both row and column indices for vertical fences
                     flipped_i = (self.board_size - 2) - i
-                    has_wall = v_fences[flipped_i][j]
+                    flipped_j = (self.board_size - 2) - j
+                    has_wall = v_fences[flipped_i][flipped_j]
+                    
+                    if has_wall:
+                        # Convert to 17x17 grid coordinates
+                        # Vertical walls are at (2i, 2j+1)
+                        grid_row, grid_col = 2*i, 2*j + 1
+                        # Account for fence length when flipping
+                        if grid_row + 2 < self.grid_size:
+                            # Set wall position in tensor - channel 3 for vertical walls
+                            board_tensor[3, grid_row, grid_col] = 1
+                            board_tensor[3, grid_row + 1, grid_col] = 1
+                            board_tensor[3, grid_row + 2, grid_col] = 1
                 else:
                     has_wall = v_fences[i][j]
-                
-                if has_wall:
-                    # Convert to 17x17 grid coordinates
-                    # Vertical walls are at (2i, 2j+1)
-                    grid_row, grid_col = 2*i, 2*j + 1
-                    # Set wall position in tensor - channel 3 for vertical walls
-                    board_tensor[3, grid_row, grid_col] = 1
-                    board_tensor[3, grid_row + 1, grid_col] = 1
-                    board_tensor[3, grid_row + 2, grid_col] = 1
+                    
+                    if has_wall:
+                        # Convert to 17x17 grid coordinates
+                        # Vertical walls are at (2i, 2j+1)
+                        grid_row, grid_col = 2*i, 2*j + 1
+                        # Set wall position in tensor - channel 3 for vertical walls
+                        board_tensor[3, grid_row, grid_col] = 1
+                        board_tensor[3, grid_row + 1, grid_col] = 1
+                        board_tensor[3, grid_row + 2, grid_col] = 1
         # Create fence count tensor
         fence_counts = torch.FloatTensor([current_fences / 10.0, opponent_fences / 10.0])
         
