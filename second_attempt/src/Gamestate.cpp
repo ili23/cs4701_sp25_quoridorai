@@ -286,8 +286,9 @@ Gamestate::Gamestate() {
   hFences[1][3] = true;
   hFences[2][2] = true;
   hFences[3][3] = true;
-
+  hFences[3][1] = true;
   vFences[0][3] = true;
+  vFences[3][2] = true;
 }
 
 void Gamestate::displayBoard() {
@@ -819,12 +820,11 @@ std::vector<Move> Gamestate::getFenceMoves() {
           if (isValid) {
             // Temporarily place fence
             vFences[row][col] = true;
-            
+            // Print the board state for debugging
             // Check if both players still have paths to goals
             if (pathToEnd(true) && pathToEnd(false)) {
               moves.emplace_back(false, std::make_pair(row, col));
             }
-            
             // Remove temporary fence
             vFences[row][col] = false;
           }
@@ -836,12 +836,6 @@ std::vector<Move> Gamestate::getFenceMoves() {
 }
 
 bool Gamestate::pathToEnd(bool p1) {
-  // Early optimization: if few fences have been placed, a path must exist
-  int totalFencesPlaced = (kStartingFences - p1Fences) + (kStartingFences - p2Fences);
-  if (totalFencesPlaced <= 2) { // update this number to 4 when we bump up the size of the board
-    return true;
-  }
-
   bool reachable[kBoardSize][kBoardSize] = {};
 
   std::queue<std::pair<int, int>> toSearch;
