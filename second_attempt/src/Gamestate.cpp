@@ -539,6 +539,105 @@ bool Gamestate::isValidBasicPawnMove(const std::pair<int, int>& startingPoint, i
   return false;
 }
 
+bool Gamestate::containsFenceInDirection(std::pair<int, int> startingPoint, int dx, int dy) {  
+  // Case 1: Outside edges of the board
+  bool onLeftVerticalEdge = startingPoint.second == 0;
+  bool onRightVerticalEdge = startingPoint.second == kBoardSize - 1;
+  bool onTopHorizontalEdge = startingPoint.first == 0;
+  bool onBottomHorizontalEdge = startingPoint.first == kBoardSize - 1;
+  bool isCorner = (onLeftVerticalEdge || onRightVerticalEdge) &&
+    (onTopHorizontalEdge || onBottomHorizontalEdge);
+
+  
+  if (isCorner) {
+      int fenceX = onBottomHorizontalEdge ? startingPoint.first - 1 : startingPoint.first;
+      int fenceY = onRightVerticalEdge ? startingPoint.second - 1 : startingPoint.second;
+      if (dx != 0){
+        // moving vertically so check horizontal fence
+        return hFences[fenceX][fenceY];
+      }
+      else if (dy != 0){
+        // moving horizontally so check vertical fence
+        return vFences[fenceX][fenceY];
+      }
+  }
+  else if (onLeftVerticalEdge){
+    if (dy != 0){
+      // moving horizontally so check vertical fence
+      return vFences[startingPoint.first-1][startingPoint.second] || vFences[startingPoint.first][startingPoint.second];
+    }
+    else if (dx == -1){
+      // moving horizontally so check vertical fence
+      return hFences[startingPoint.first-1][startingPoint.second];
+    }
+    else if (dx == 1){
+      // moving horizontally so check vertical fence
+      return hFences[startingPoint.first][startingPoint.second];
+    }
+  }
+  else if (onRightVerticalEdge){
+    if (dy != 0){
+      // moving horizontally so check vertical fence
+      return vFences[startingPoint.first-1][startingPoint.second-1] || vFences[startingPoint.first][startingPoint.second-1];
+    }
+    else if (dx == -1){
+      // moving vertically so check horizontal fence
+      return hFences[startingPoint.first-1][startingPoint.second-1];
+    } 
+    else if (dx == 1){
+      // moving vertically so check horizontal fence
+      return hFences[startingPoint.first][startingPoint.second-1];
+    }
+  }
+  else if (onTopHorizontalEdge){
+    if (dx != 0){
+      // moving vertically so check horizontal fence
+      return hFences[startingPoint.first][startingPoint.second] || hFences[startingPoint.first][startingPoint.second-1];
+    }
+    else if (dy == -1){
+      // moving horizontally so check vertical fence
+      return vFences[startingPoint.first][startingPoint.second-1];
+    }
+    else if (dy == 1){
+      // moving horizontally so check vertical fence
+      return vFences[startingPoint.first][startingPoint.second];
+    }
+  }
+  else if (onBottomHorizontalEdge){
+    if (dx != 0){
+      // moving vertically so check horizontal fence
+      return hFences[startingPoint.first-1][startingPoint.second-1] || hFences[startingPoint.first-1][startingPoint.second];
+    }
+    else if (dy == -1){
+      // moving horizontally so check vertical fence
+      return vFences[startingPoint.first-1][startingPoint.second-1];
+    }
+    else if (dy == 1){
+      // moving horizontally so check vertical fence
+      return vFences[startingPoint.first-1][startingPoint.second];
+    }
+  }
+  else {  // Case 2: Starting is in a middle of the board
+    if (dx == 1 && dy == 0){
+      // vertical move so check horizontal fences
+      return hFences[startingPoint.first][startingPoint.second-1] || hFences[startingPoint.first][startingPoint.second];
+    }
+    else if (dx == -1 && dy == 0){
+      // vertical move so check horizontal fences
+      return hFences[startingPoint.first-1][startingPoint.second-1] || hFences[startingPoint.first-1][startingPoint.second];
+    }
+    else if (dx == 0 && dy == 1){
+      // horizontal move so check vertical fences
+      return vFences[startingPoint.first-1][startingPoint.second] || vFences[startingPoint.first][startingPoint.second];
+    }
+    else if (dx == 0 && dy == -1){
+      // horizontal move so check vertical fences
+      return vFences[startingPoint.first-1][startingPoint.second-1] || vFences[startingPoint.first][startingPoint.second-1];
+    }
+  }
+  assert(false); // should never reach here
+}
+
 std::vector<Move> Gamestate::getPawnMoves() {
   std::vector<Move> moves;
 
@@ -563,88 +662,42 @@ std::vector<Move> Gamestate::getPawnMoves() {
 
   // Check if opponent is adjacent
   int dx = otherPawn.first - startingPoint.first;
-  int dy = otherPawn.second - startingPoint.second;
-  // // Check if a wall exists between the two pawns
-  // bool wallBetween = false;
+  int dy = otherPawn.second - startingPoint.second;  
   
-  // // Check for wall between player and opponent
-  if (abs(dx) + abs(dy) == 1) {  // Adjacent pawns
-  //   if (dx == 0) {  // Vertical adjacency
-  //     if (dy > 0) {  // Opponent is to the right
-  //       // Check for vertical fence between them
-  //       wallBetween = vFences[startingPoint.first][startingPoint.second] || 
-  //                     vFences[startingPoint.first-1][startingPoint.second];
-  //     } else {  // Opponent is to the left
-  //       // Check for vertical fence between them
-  //       wallBetween = vFences[startingPoint.first][startingPoint.second-1] || 
-  //                     vFences[startingPoint.first-1][startingPoint.second-1];
-  //     }
-  //   } else {  // Horizontal adjacency
-  //     if (dx > 0) {  // Opponent is below
-  //       // Check for horizontal fence between them
-  //       wallBetween = hFences[startingPoint.first][startingPoint.second] || 
-  //                     hFences[startingPoint.first][startingPoint.second-1];
-  //     } else {  // Opponent is above
-  //       // Check for horizontal fence between them
-  //       wallBetween = hFences[startingPoint.first-1][startingPoint.second] || 
-  //                     hFences[startingPoint.first-1][startingPoint.second-1];
-  //     }
-  //   }
-
-  //   // If there's a wall between, we can't jump
-  //   if (wallBetween) {
-  //     return moves;
-  //   }
+  if (abs(dx) + abs(dy) == 1) {  
+    if (containsFenceInDirection(startingPoint, dx, dy)) { // Check for wall between player and opponent
+      return moves;
+    }
     
-    // Direction from player to opponent
     // Try straight jump over opponent
     std::pair<int, int> jumpTarget =
         std::make_pair(otherPawn.first + dx, otherPawn.second + dy);
 
-    // Check if jump target is valid (in bounds)
-    bool straightJumpValid = inBounds(jumpTarget);
     bool straightJumpBlocked = false;
     
-    // Check fence between opponent and jump target (if in bounds)
-    if (straightJumpValid) {
-      bool canJump = false;
-
-      // Use the same fence checking logic as for basic moves
-      if (dx == 0) {   // Vertical jump
-        if (dy > 0) {  // Jumping up
-          canJump = !vFences[otherPawn.first][otherPawn.second] && !vFences[otherPawn.first - 1][otherPawn.second];
-        } else {  // Jumping down
-          canJump = !vFences[otherPawn.first][otherPawn.second - 1] && !vFences[otherPawn.first - 1][otherPawn.second - 1];
-        }
-      } else {         // Horizontal jump
-        if (dx > 0) {  // Jumping right
-          canJump = !hFences[otherPawn.first][otherPawn.second]  && !hFences[otherPawn.first][otherPawn.second - 1];
-        } else {  // Jumping left
-          canJump = !hFences[otherPawn.first - 1][otherPawn.second] && !hFences[otherPawn.first - 1][otherPawn.second - 1];
-        }
-      }
-
-      if (canJump) {
-        moves.emplace_back(jumpTarget);
-      } else {
+    if (inBounds(jumpTarget)) { // check if jump target is in bounds
+      if (containsFenceInDirection(otherPawn, dx, dy)) { // check if there is a fence between the opponent and the straight jump target
         straightJumpBlocked = true;
+      }
+      else {
+        moves.emplace_back(jumpTarget);
+        return moves; // if the straight jump is valid, no diag jumps allowed
       }
     } else {
       // If jump target is out of bounds, consider it blocked
       straightJumpBlocked = true;
     }
     
-    // If straight jump is invalid (blocked by fence or out of bounds), try diagonal jumps
     if (straightJumpBlocked) {
       std::vector<std::pair<int, int>> diagonals;
 
       // Add potential diagonal jumps (perpendicular to straight jump)
-      if (dx == 0) {  // If moving vertically, try horizontal diagonals
+      if (dx == 0) {  // If moving horizontally, try vertical diagonals
         diagonals.push_back(
             std::make_pair(otherPawn.first + 1, otherPawn.second));
         diagonals.push_back(
             std::make_pair(otherPawn.first - 1, otherPawn.second));
-      } else {  // If moving horizontally, try vertical diagonals
+      } else {  // If moving vertically, try horizontal diagonals
         diagonals.push_back(
             std::make_pair(otherPawn.first, otherPawn.second + 1));
         diagonals.push_back(
@@ -654,23 +707,7 @@ std::vector<Move> Gamestate::getPawnMoves() {
       // Check each diagonal jump
       for (const auto& diagTarget : diagonals) {
         if (inBounds(diagTarget) && diagTarget != startingPoint) {
-          bool canDiagJump = false;
-
-          // Use the same fence checking logic as for basic moves
-          if (diagTarget.first == otherPawn.first + 1) {  // Jumping right
-            canDiagJump = !hFences[otherPawn.first][otherPawn.second];
-          } else if (diagTarget.first ==
-                     otherPawn.first - 1) {  // Jumping left
-            canDiagJump = !hFences[otherPawn.first - 1][otherPawn.second];
-          } else if (diagTarget.second ==
-                     otherPawn.second + 1) {  // Jumping up
-            canDiagJump = !vFences[otherPawn.first][otherPawn.second];
-          } else if (diagTarget.second ==
-                     otherPawn.second - 1) {  // Jumping down
-            canDiagJump = !vFences[otherPawn.first][otherPawn.second - 1];
-          }
-
-          if (canDiagJump) {
+          if (!containsFenceInDirection(otherPawn, diagTarget.first - otherPawn.first, diagTarget.second - otherPawn.second)) {
             moves.emplace_back(diagTarget);
           }
         }

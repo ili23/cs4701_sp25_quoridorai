@@ -79,6 +79,8 @@ class Gamestate {
   // Checks if a basic pawn move in a given direction is valid
   bool isValidBasicPawnMove(const std::pair<int, int>& startingPoint, int dx, int dy, const std::pair<int, int>& otherPawn) const;
 
+  // Checks if a fence placement move in a given direction is valid
+  bool containsFenceInDirection(std::pair<int, int> startingPoint, int dx, int dy);
   // Return true if the game is over
   bool terminal();
 
