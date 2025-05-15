@@ -124,6 +124,19 @@ for _ in range(25):
 
 graph_path2 = deepcopy(graph)
 
+# Draw pawns
+def draw_pawn(pos, ax, color="black", **kwargs):
+    row, col = pos
+    circ = patches.Circle(
+        (col + 0.5, row + 0.5),
+        0.18,
+        facecolor=color,
+        zorder=10,
+        edgecolor="black",
+        **kwargs
+    )
+    ax.add_patch(circ)
+
 
 def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
     ax.set_xlim(-0.05, board_size + 0.05)
@@ -144,14 +157,6 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
         (0, 0), board_size, board_size, linewidth=1, edgecolor="black", facecolor="none"
     )
     ax.add_patch(rect)
-
-    # Draw pawns
-    def draw_pawn(pos, color="black"):
-        row, col = pos
-        circ = patches.Circle(
-            (col + 0.5, row + 0.5), 0.18, facecolor=color, zorder=10, edgecolor="black"
-        )
-        ax.add_patch(circ)
 
     # Draw fences
     def draw_fence(row, col, orientation, color="black"):
@@ -186,10 +191,10 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
             )
 
     if 1 in pawns_to_render:
-        draw_pawn(pawn1_pos, color="tab:red")
+        draw_pawn(pawn1_pos, ax, color="tab:red")
 
     if 2 in pawns_to_render:
-        draw_pawn(pawn2_pos, color="tab:green")
+        draw_pawn(pawn2_pos, ax, color="tab:green")
 
     # draw_path(path1, 'blue')
     # draw_path(path2, 'green')
@@ -272,24 +277,70 @@ for start in graph:
 
 
 # Step 3: Draw board
-fig = plt.figure(figsize=(12, 3.75))
-gs = GridSpec(1, 5, figure=fig, width_ratios=[1, 0.03, 1, 1, 1])
+fig, axs = plt.subplots(2, 3, figsize=(12, 3.75 * 2))
 
-ax00 = fig.add_subplot(gs[0])
-ax01 = fig.add_subplot(gs[2])
-ax10 = fig.add_subplot(gs[3])
-ax11 = fig.add_subplot(gs[4])
+pawn1_pos = (0, 2)
+pawn2_pos = (4, 2)
+fences = []
+render(axs[0, 0], "(A) Starting position", None, (1, 2))
 
-# Put a colorbar to the left of ax00
-ax_cbar = fig.add_subplot(gs[1])
-ax_cbar.axis("off")
 
-# plt.rcParams['text.usetex'] = True
+pawn1_pos = (2, 2)
+pawn2_pos = (4, 2)
+fences = [(2, 2, "v"), (2, 3, "v")]
 
-render(ax00, "(A) Board setups", None, (1, 2))
-render(ax01, "(B) P1 resillience weights", graph_path1, (1,), colorbar=ax_cbar)
-render(ax10, "(C) P2 resillience weights", graph_path2, (2,))
-render(ax11, "(D) Target edges", final_graph, (1, 2))
+render(axs[0, 1], "(B) Valid moves", None, (1, 2))
+
+draw_pawn((2, 3), axs[0, 1], color="tab:red", alpha=0.5, linestyle="dotted")
+draw_pawn((1, 2), axs[0, 1], color="tab:red", alpha=0.5, linestyle="dotted")
+draw_pawn((2, 1), axs[0, 1], color="tab:red", alpha=0.5, linestyle="dotted")
+
+pawn1_pos = (4, 3)
+pawn2_pos = (4, 2)
+fences = []
+render(axs[0, 2], "(C) Win condition", None, (1, 2))
+
+
+
+pawn1_pos = (0, 2)
+pawn2_pos = (4, 2)
+fences = [(1, 1, "v"), (1, 0, "v"), (2, 2, "v"), (2, 3, "v"), (3, 3, "v"), (3, 4, "v"), (3, 3, "h"), (2, 3, "h")]
+render(axs[1, 0], "(D) Illegal fence placement", None, (1, 2))
+
+# Fence between (row, col) and (row+1, col)
+x = 1 + 0.95
+y = 2
+rect = patches.Rectangle((x, y), 0.1, 1, facecolor="grey", edgecolor="black", alpha=0.8, linestyle="dashed", zorder=10)
+axs[1, 0].add_patch(rect)
+rect = patches.Rectangle((x, y + 1), 0.1, 1, facecolor="grey", edgecolor="black", alpha=0.8, linestyle="dashed", zorder=10)
+axs[1, 0].add_patch(rect)
+
+
+pawn1_pos = (1, 2)
+pawn2_pos = (2, 2)
+fences = [(1, 1, 'h'), (1, 2, 'h'), (2, 1, 'h'), (2, 2, 'h')]
+render(axs[1, 1], "(E) Jumping moves", None, (1, 2))
+
+draw_pawn((0, 2), axs[1, 1], color="tab:red", alpha=0.5, linestyle="dotted")
+draw_pawn((3, 2), axs[1, 1], color="tab:red", alpha=0.5, linestyle="dotted")
+
+
+# Fence between (row, col) and (row+1, col)
+
+
+pawn1_pos = (1, 2)
+pawn2_pos = (2, 2)
+fences = [(0, 1, 'h'),  (1, 1, 'h'), (1, 2, 'h'), (0, 2, 'h'), (2, 2, 'v'),(2, 3, 'v'),]
+render(axs[1, 2], "(F) Advanced jumps", None, (1, 2))
+
+# draw_pawn((0, 2), axs[1, 2], color="tab:red", alpha=0.5, linestyle="dotted")
+# draw_pawn((3, 2), axs[1, 2], color="tab:red", alpha=0.5, linestyle="dotted")
+
+draw_pawn((0, 2), axs[1, 2], color="tab:red", alpha=0.5, linestyle="dotted")
+draw_pawn((2, 1), axs[1, 2], color="tab:red", alpha=0.5, linestyle="dotted")
+draw_pawn((2, 3), axs[1, 2], color="tab:red", alpha=0.5, linestyle="dotted")
+
 
 plt.tight_layout()
-plt.savefig("path_figure.png", dpi=400)
+plt.savefig("rules_demo.png", dpi=400)
+# plt.show()
