@@ -158,11 +158,11 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
         if orientation == "v":
             # Fence between (row, col) and (row, col+1)
             x = col
-            y = row + 0.9
+            y = row + 0.95
             rect = patches.Rectangle((x, y), 1, 0.1, color=color, zorder=10)
         else:  # 'v'
             # Fence between (row, col) and (row+1, col)
-            x = col + 0.9
+            x = col + 0.95
             y = row
             rect = patches.Rectangle((x, y), 0.1, 1, color=color, zorder=10)
         ax.add_patch(rect)

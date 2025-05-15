@@ -48,6 +48,16 @@ Quoridor is a deterministic, two player game with perfect information. Each play
 
 We sought to make an AI agent that was capable of playing Quoridor. Initially, we intended to focus on a primarily convolutional neural network-based approcah and evaluate it against an agent that played using random rollouts. As we progressed, we found that using random rollouts presented significant challenges, eventually abandoning their use altogether. We also found that the convolutional nerual network was underperforming. We investigated deeper into the mechanics of the game, and outsourced some complex pathfinding logic to features before the network. Our second network had fewer parameters, but performed better due to the conputations encoded in its input features.
 
+\subsection{Rules of Quoridor}
+
+As previously discussed, Quoridor is played on a square board and each player controls one pawn (Fig.~\ref{fig:rules}A). Quoridor has several variations, and many of them use a $9 \times 9$ sized board. We have opted to use a $5 \times 5$ board due to limited computing resources. The aim of the game is to move your pawn into the goal regions (Fig.~\ref{fig:rules}C). To slow down their opponent, players have a certain number of fences that they may place on the board to block their opponent's path. These fences each span two spaces, and player cannot cross a fence (Fig.~\ref{fig:rules}B). A fence may not be placed if doing so would block either player's only remaining path to the goal (Fig.~\ref{fig:rules}D). Pawns may never occupy the same space. To prevent stalemates, pawns may jump over each other if their path is blocked (Fig.~\ref{fig:rules}E). Pawns may jump diagonally only if a fence blocks their primary jump (Fig.~\ref{fig:rules}F). To limit the length of games, we instituted a move limit. Games that exceed this number of moves are declared to be drawn.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{rules_demo.png}
+    \caption{\textbf{Rules illustrations.} \textbf{(A)} The starting position. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B)} Valid pawn moves for player 1 are shown. \textbf{(C)} Player 1 has won the game. \textbf{(D)} Fences cannot be placed if they completely block either player from reaching the goal area. The lightly shaded fence would not be allowed. \textbf{(E)} If a player is blocked by the opposing pawn, they may jump over. \textbf{(F)} Pawns may move diagonally only if a fence blocks a player's jump.}
+    \label{fig:rules}
+\end{figure}
 
 
 \subsection{Monte Carlo Tree Search}
@@ -71,9 +81,6 @@ If a game tree can be fully expanded, one can use trivial algorithms to determin
     \item \textbf{Convolutional Neural Network.} A convolutional neural network that analyses the board position.
     \item \textbf{Path Resiliency Neural Network.} A MLP that has advanced knowledge of potential paths to the goal encoded as features.
 \end{enumerate}
-
-Quoridor has several variations, and many of them use a $9 \times 9$ sized board. We have opted to use a $5 \times 5$ board due to limited computing resources. 
-
 
 \subsection{Shortest Path Resiliency}
 
