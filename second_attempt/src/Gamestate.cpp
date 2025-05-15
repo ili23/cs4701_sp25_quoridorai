@@ -846,26 +846,7 @@ bool Gamestate::pathToEnd(bool p1) {
       bool blocked = false;
       
       // Check for fences based on movement direction
-      if (dx == 0 && dy == 1) {  // Moving right
-        // Check vertical fence blocking right movement
-        blocked = vFences[currentPos.first][currentPos.second] || 
-                 (currentPos.first > 0 && vFences[currentPos.first-1][currentPos.second]);
-      }
-      else if (dx == 0 && dy == -1) {  // Moving left
-        // Check vertical fence blocking left movement
-        blocked = vFences[currentPos.first][currentPos.second-1] || 
-                 (currentPos.first > 0 && vFences[currentPos.first-1][currentPos.second-1]);
-      }
-      else if (dx == 1 && dy == 0) {  // Moving down
-        // Check horizontal fence blocking downward movement
-        blocked = hFences[currentPos.first][currentPos.second] || 
-                 (currentPos.second > 0 && hFences[currentPos.first][currentPos.second-1]);
-      }
-      else if (dx == -1 && dy == 0) {  // Moving up
-        // Check horizontal fence blocking upward movement
-        blocked = hFences[currentPos.first-1][currentPos.second] || 
-                 (currentPos.second > 0 && hFences[currentPos.first-1][currentPos.second-1]);
-      }
+      blocked = containsFenceInDirection(currentPos, dx, dy);
       
       if (!blocked) {
         reachable[target.first][target.second] = true;

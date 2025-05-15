@@ -18,4 +18,4 @@ constexpr int kGameCount = 1000;
 
 constexpr bool kPlayerInput = false;
 
-constexpr int kMaxFileSize = 10000;
+constexpr int kMaxFileSize = 20000;
