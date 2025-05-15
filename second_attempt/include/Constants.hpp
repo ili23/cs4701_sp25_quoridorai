@@ -14,7 +14,7 @@ constexpr int p2_start_first = kBoardSize - 1;
 constexpr int p2_start_second = kBoardSize / 2;
 
 constexpr int kRandomMovesCount = 20;
-constexpr int kGameCount = 10;
+constexpr int kGameCount = 1;
 
 constexpr bool kPlayerInput = false;
 

@@ -272,11 +272,9 @@ void Gamestate::displayBoard() {
   for (int row = 0; row < kBoardSize - 1; row++) {
     for (int col = 0; col < kBoardSize - 1; col++) {
       if (hFences[row][col]) {
+        // No check is needed here because our fences matrix is always 1 unit less than the board size
         hFenceExtended[row][col] = true;
-        // Extend fence horizontally if possible (for 2-unit length)
-        if (col < kBoardSize - 1) {
-          hFenceExtended[row][col+1] = true;
-        }
+        hFenceExtended[row][col+1] = true;
       }
     }
   }
@@ -285,11 +283,9 @@ void Gamestate::displayBoard() {
   for (int row = 0; row < kBoardSize - 1; row++) {
     for (int col = 0; col < kBoardSize - 1; col++) {
       if (vFences[row][col]) {
+        // No check is needed here because our fences matrix is always 1 unit less than the board size
         vFenceExtended[row][col] = true;
-        // Extend fence vertically if possible (for 2-unit length)
-        if (row < kBoardSize - 1) {
-          vFenceExtended[row+1][col] = true;
-        }
+        vFenceExtended[row+1][col] = true;
       }
     }
   }
@@ -358,7 +354,7 @@ void Gamestate::displayBoard() {
 
 std::unique_ptr<Gamestate> Gamestate::applyMove(const Move& m) const {
   std::unique_ptr<Gamestate> g = std::make_unique<Gamestate>(*this);
-
+  // prereq for this function is that the move is valid 
   if (m.pawnMove) {
     if (g->p1Turn) {
       g->p1Pos = m.pos;
@@ -397,8 +393,7 @@ float Gamestate::result() {
   if (moveCount >= kMaxMoves) {
     return 0;
   }
-
-  if (p1Pos.first == kBoardSize - 1)
+  else if (p1Pos.first == kBoardSize - 1)
     return 1;
   else if (p2Pos.first == 0)
     return -1;
@@ -422,6 +417,113 @@ std::vector<Move> Gamestate::getMoves() {
   return moves;
 }
 
+bool Gamestate::isValidBasicPawnMove(const std::pair<int, int>& startingPoint, int dx, int dy, const std::pair<int, int>& otherPawn) const {
+  // Calculate target position
+  std::pair<int, int> target = {startingPoint.first + dx, startingPoint.second + dy};
+  // Check if target is in bounds and not occupied by the other pawn
+  if (!inBounds(target) || target == otherPawn) {
+    return false;
+  }
+  
+  // Case 1: Outside edges of the board
+  bool onLeftVerticalEdge = startingPoint.second == 0;
+  bool onRightVerticalEdge = startingPoint.second == kBoardSize - 1;
+  bool onTopHorizontalEdge = startingPoint.first == 0;
+  bool onBottomHorizontalEdge = startingPoint.first == kBoardSize - 1;
+  bool isCorner = (onLeftVerticalEdge || onRightVerticalEdge) &&
+    (onTopHorizontalEdge || onBottomHorizontalEdge);
+
+  
+  if (isCorner) {
+      int fenceX = onBottomHorizontalEdge ? startingPoint.first - 1 : startingPoint.first;
+      int fenceY = onRightVerticalEdge ? startingPoint.second - 1 : startingPoint.second;
+      if (dx != 0){
+        // moving vertically so check horizontal fence
+        return !hFences[fenceX][fenceY];
+      }
+      else if (dy != 0){
+        // moving horizontally so check vertical fence
+        return !vFences[fenceX][fenceY];
+      }
+  }
+  else if (onLeftVerticalEdge){
+    if (dy != 0){
+      // moving horizontally so check vertical fence
+      return !vFences[startingPoint.first-1][startingPoint.second] && !vFences[startingPoint.first][startingPoint.second];
+    }
+    else if (dx == -1){
+      // moving horizontally so check vertical fence
+      return !hFences[startingPoint.first-1][startingPoint.second];
+    }
+    else if (dx == 1){
+      // moving horizontally so check vertical fence
+      return !hFences[startingPoint.first][startingPoint.second];
+    }
+  }
+  else if (onRightVerticalEdge){
+    if (dy != 0){
+      // moving horizontally so check vertical fence
+      return !vFences[startingPoint.first-1][startingPoint.second-1] && !vFences[startingPoint.first][startingPoint.second-1];
+    }
+    else if (dx == -1){
+      // moving vertically so check horizontal fence
+      return !hFences[startingPoint.first-1][startingPoint.second-1];
+    } 
+    else if (dx == 1){
+      // moving vertically so check horizontal fence
+      return !hFences[startingPoint.first][startingPoint.second-1];
+    }
+  }
+  else if (onTopHorizontalEdge){
+    if (dx != 0){
+      // moving vertically so check horizontal fence
+      return !hFences[startingPoint.first][startingPoint.second] && !hFences[startingPoint.first][startingPoint.second-1];
+    }
+    else if (dy == -1){
+      // moving horizontally so check vertical fence
+      return !vFences[startingPoint.first][startingPoint.second-1];
+    }
+    else if (dy == 1){
+      // moving horizontally so check vertical fence
+      return !vFences[startingPoint.first][startingPoint.second];
+    }
+  }
+  else if (onBottomHorizontalEdge){
+    if (dx != 0){
+      // moving vertically so check horizontal fence
+      return !hFences[startingPoint.first-1][startingPoint.second-1] && !hFences[startingPoint.first-1][startingPoint.second];
+    }
+    else if (dy == -1){
+      // moving horizontally so check vertical fence
+      return !vFences[startingPoint.first-1][startingPoint.second-1];
+    }
+    else if (dy == 1){
+      // moving horizontally so check vertical fence
+      return !vFences[startingPoint.first-1][startingPoint.second];
+    }
+  }
+  else {  // Case 2: Starting is in a middle of the board
+    if (dx == 1 && dy == 0){
+      // vertical move so check horizontal fences
+      return !hFences[startingPoint.first][startingPoint.second-1] && !hFences[startingPoint.first][startingPoint.second];
+    }
+    else if (dx == -1 && dy == 0){
+      // vertical move so check horizontal fences
+      return !hFences[startingPoint.first-1][startingPoint.second-1] && !hFences[startingPoint.first-1][startingPoint.second];
+    }
+    else if (dx == 0 && dy == 1){
+      // horizontal move so check vertical fences
+      return !vFences[startingPoint.first-1][startingPoint.second] && !vFences[startingPoint.first][startingPoint.second];
+    }
+    else if (dx == 0 && dy == -1){
+      // horizontal move so check vertical fences
+      return !vFences[startingPoint.first-1][startingPoint.second-1] && !vFences[startingPoint.first][startingPoint.second-1];
+    }
+  }
+  assert(false);
+  return false;
+}
+
 std::vector<Move> Gamestate::getPawnMoves() {
   std::vector<Move> moves;
 
@@ -429,40 +531,22 @@ std::vector<Move> Gamestate::getPawnMoves() {
   std::pair<int, int> otherPawn = p1Turn ? p2Pos : p1Pos;
 
   // Basic directional moves (up, down, left, right)
-  std::pair<int, int> target =
-      std::make_pair(startingPoint.first, startingPoint.second + 1);
-
-  // Check if moving right is valid (no vertical fence blocking)
-  if (inBounds(target) && target != otherPawn &&
-      !vFences[startingPoint.first][startingPoint.second]) {
-    moves.emplace_back(target);
+  std::pair<int, int> directions[4] = {
+    {0, 1},   // right
+    {0, -1},  // left
+    {1, 0},   // down
+    {-1, 0}   // up
+  };
+  
+  // Check all four basic directions
+  for (const auto& dir : directions) {
+    std::pair<int, int> target = {startingPoint.first + dir.first, startingPoint.second + dir.second};
+    if (isValidBasicPawnMove(startingPoint, dir.first, dir.second, otherPawn)) {
+      moves.emplace_back(target);
+    }
   }
+  std::cout << "Number of pawn moves: " << moves.size() << std::endl;
 
-  target = std::make_pair(startingPoint.first, startingPoint.second - 1);
-
-  // Check if moving left is valid (no vertical fence blocking)
-  if (inBounds(target) && target != otherPawn &&
-      !vFences[startingPoint.first][startingPoint.second - 1]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first + 1, startingPoint.second);
-
-  // Check if moving down is valid (no horizontal fence blocking)
-  if (inBounds(target) && target != otherPawn &&
-      !hFences[startingPoint.first][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  target = std::make_pair(startingPoint.first - 1, startingPoint.second);
-
-  // Check if moving up is valid (no horizontal fence blocking)
-  if (inBounds(target) && target != otherPawn &&
-      !hFences[startingPoint.first - 1][startingPoint.second]) {
-    moves.emplace_back(target);
-  }
-
-  // Jump moves over opponent (matching Python implementation)
   // Check if opponent is adjacent
   int dx = otherPawn.first - startingPoint.first;
   int dy = otherPawn.second - startingPoint.second;
@@ -567,13 +651,8 @@ std::vector<Move> Gamestate::getFenceMoves() {
       // Check horizontal fence placement
       if (!hFences[row][col]) {
         // Boundary check for horizontal fence (ensure it fits within the board)
-        if (col < kBoardSize - 1) {
+        
           bool isValid = true;
-          
-          // Check if horizontal fence already exists at this position
-          if (hFences[row][col]) {
-            isValid = false;
-          }
           
           // Check for adjacent fence that would conflict with 2-unit length
           if (isValid && col < kBoardSize - 2 && hFences[row][col + 1]) {
@@ -588,10 +667,7 @@ std::vector<Move> Gamestate::getFenceMoves() {
           if (isValid && vFences[row][col]) {
             isValid = false; // Crossing with fence at current position
           }
-          
-          if (isValid && col < kBoardSize - 2 && vFences[row][col + 1]) {
-            isValid = false; // Crossing with fence at end of 2-unit fence
-          }
+        
           
           // If valid placement, temporarily place fence and check paths
           if (isValid) {
@@ -606,19 +682,12 @@ std::vector<Move> Gamestate::getFenceMoves() {
             // Remove temporary fence
             hFences[row][col] = false;
           }
-        }
       }
       
       // Check vertical fence placement
       if (!vFences[row][col]) {
         // Boundary check for vertical fence (ensure it fits within the board)
-        if (row < kBoardSize - 1) {
           bool isValid = true;
-          
-          // Check if vertical fence already exists at this position
-          if (vFences[row][col]) {
-            isValid = false;
-          }
           
           // Check for adjacent fence that would conflict with 2-unit length
           if (isValid && row < kBoardSize - 2 && vFences[row + 1][col]) {
@@ -633,11 +702,7 @@ std::vector<Move> Gamestate::getFenceMoves() {
           if (isValid && hFences[row][col]) {
             isValid = false; // Crossing with fence at current position
           }
-          
-          if (isValid && row < kBoardSize - 2 && hFences[row + 1][col]) {
-            isValid = false; // Crossing with fence at end of 2-unit fence
-          }
-          
+        
           // If valid placement, temporarily place fence and check paths
           if (isValid) {
             // Temporarily place fence
@@ -651,21 +716,11 @@ std::vector<Move> Gamestate::getFenceMoves() {
             // Remove temporary fence
             vFences[row][col] = false;
           }
-        }
       }
     }
   }
 
   return moves;
-}
-
-void Gamestate::displayAllMoves() {
-  std::vector<Move> allMoves = getMoves();
-
-  for (Move m : allMoves) {
-    auto v = applyMove(m);
-    v->displayBoard();
-  }
 }
 
 bool Gamestate::pathToEnd(bool p1) {
@@ -680,54 +735,33 @@ bool Gamestate::pathToEnd(bool p1) {
   std::queue<std::pair<int, int>> toSearch;
 
   // Start at current player position
-  toSearch.push(p1 ? p1Pos : p2Pos);
-  reachable[toSearch.front().first][toSearch.front().second] = true;
-
+  std::pair<int, int> startPos = p1 ? p1Pos : p2Pos;
   std::pair<int, int> otherPawn = p1 ? p2Pos : p1Pos;
+  
+  toSearch.push(startPos);
+  reachable[startPos.first][startPos.second] = true;
 
-  std::pair<int, int> target;
-  std::pair<int, int> startingPoint;
+  std::pair<int, int> directions[4] = {
+    {0, 1},   // right
+    {0, -1},  // left
+    {1, 0},   // down
+    {-1, 0}   // up
+  };
 
   while (!toSearch.empty()) {
-    startingPoint = toSearch.front();
-
-    target = std::make_pair(startingPoint.first, startingPoint.second + 1);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !vFences[startingPoint.first][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first, startingPoint.second - 1);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !vFences[startingPoint.first][startingPoint.second - 1]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first + 1, startingPoint.second);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !hFences[startingPoint.first][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
-    target = std::make_pair(startingPoint.first - 1, startingPoint.second);
-
-    if (inBounds(target) && !reachable[target.first][target.second] &&
-        target != otherPawn &&
-        !hFences[startingPoint.first - 1][startingPoint.second]) {
-      reachable[target.first][target.second] = true;
-      toSearch.emplace(target);
-    }
-
+    std::pair<int, int> currentPos = toSearch.front();
     toSearch.pop();
+    
+    // Check all four basic directions
+    for (const auto& dir : directions) {
+      std::pair<int, int> target = {currentPos.first + dir.first, currentPos.second + dir.second};
+      
+      if (inBounds(target) && !reachable[target.first][target.second] && 
+          isValidBasicPawnMove(currentPos, dir.first, dir.second, otherPawn)) {
+        reachable[target.first][target.second] = true;
+        toSearch.emplace(target);
+      }
+    }
   }
 
   // Check if the player reached their goal row

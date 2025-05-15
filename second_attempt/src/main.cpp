@@ -91,7 +91,7 @@ int main(int argc, const char* argv[]) {
           gs = tree.bestMoveApply();
         }
       }
-
+      
       std::cout << "Move: " << moves_made << std::endl;
 
       std::cout << "W " << tree.root->w << " N " << tree.root->n << std::endl;
