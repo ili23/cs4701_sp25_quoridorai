@@ -43,7 +43,7 @@ void Node::displayChildren() {
   for (auto c : children) {
     std::cout << "Possible move:" << std::endl;
     std::cout << "W " << c->w << " N " << c->n << std::endl;
-    c->state.displayBoard();
+    // c->state.displayBoard();
     std::cout << std::endl << std::endl;
   }
 }
