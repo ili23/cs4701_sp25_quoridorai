@@ -342,5 +342,5 @@ draw_pawn((2, 3), axs[1, 2], color="tab:red", alpha=0.5, linestyle="dotted")
 
 
 plt.tight_layout()
-plt.savefig("rules_demo.png", dpi=100)
+plt.savefig("rules_demo.png", dpi=400)
 # plt.show()
