@@ -104,8 +104,9 @@ class QuoridorTrainer:
         }
 
 if __name__ == "__main__":
+    print("Training model...")
     trainer = QuoridorTrainer(
-        data_path="./model/training_data/fake_training_data.csv",
+        data_path="./model/training_data/gamestate0.csv",
         batch_size=32,
         max_epochs=5
     )

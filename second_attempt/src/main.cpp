@@ -18,6 +18,7 @@ int main(int argc, const char* argv[]) {
     return -1;
   }
 #endif
+// #define GEN_TRAINING_DATA
 
 #ifdef GEN_TRAINING_DATA
   int i = 0;

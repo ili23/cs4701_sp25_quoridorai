@@ -29,7 +29,7 @@ def export_model(checkpoint_path="model/checkpoints/quoridor_cnn_final.ckpt", ou
             return self.model((board_tensor, fence_counts, move_count))
     
     wrapped_model = ModelWrapper(torch_model)
-    board_tensor = torch.zeros(1, 4, 17, 17)
+    board_tensor = torch.zeros(1, 4, 9, 9)
     fence_counts = torch.zeros(1, 2)
     move_count = torch.zeros(1, 1)
     example_input = (board_tensor, fence_counts, move_count)
