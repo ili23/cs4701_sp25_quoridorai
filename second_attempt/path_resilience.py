@@ -131,7 +131,7 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
     ax.set_aspect("equal")
     ax.axis("off")
 
-    ax.set_title(title_text)
+    ax.set_title(title_text, fontweight='bold')
 
     # Draw squares
     for row in range(board_size):
@@ -270,7 +270,7 @@ for start in graph:
 
 
 # Step 3: Draw board
-fig = plt.figure(figsize=(16, 5))
+fig = plt.figure(figsize=(12, 3.75))
 gs = GridSpec(1, 5, figure=fig, width_ratios=[1, 0.03, 1, 1, 1])
 
 ax00 = fig.add_subplot(gs[0])
@@ -290,4 +290,4 @@ render(ax10, "(C) P2 resillience weights", graph_path2, (2,))
 render(ax11, "(D) Target edges", final_graph, (1, 2))
 
 plt.tight_layout()
-plt.show()
+plt.savefig("path_figure.png", dpi=400)
