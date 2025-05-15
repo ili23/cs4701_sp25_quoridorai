@@ -257,6 +257,37 @@ Gamestate::Gamestate() {
   p2Pos.second = p2_start_second;
 
   p1Turn = true;
+
+  // First Sample
+  // hFences[1][1] = true;
+  // hFences[0][3] = true;
+  // vFences[2][0] = true;
+
+  // p1Pos.first = 2;
+  // p1Pos.second = 0;
+  // p2Pos.first = 2;
+  // p2Pos.second = 4;
+
+  // p1Turn = false;
+
+  // p1Fences = 0;
+  // p2Fences = 1;
+
+  // Second Sample
+
+  p1Turn = true;
+  p1Pos.first = 0;
+  p1Pos.second = 1;
+
+  p2Pos.first = 3;
+  p2Pos.second = 2;
+
+  hFences[0][1] = true;
+  hFences[1][3] = true;
+  hFences[2][2] = true;
+  hFences[3][3] = true;
+
+  vFences[0][3] = true;
 }
 
 void Gamestate::displayBoard() {

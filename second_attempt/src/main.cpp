@@ -12,6 +12,46 @@
 #endif
 
 int main(int argc, const char* argv[]) {
+
+  Gamestate gs;
+  gs.displayBoard();
+
+  std::ofstream data_evals, move_evals;
+  data_evals.open("MCTS_data_evals2.csv");
+  move_evals.open("MCTS_data2.csv");
+
+  MCTS tree;
+
+  tree.startNewSearch(gs);
+
+  for(int i = 0; i < 10000; i++) {
+    tree.iterate(1);
+    data_evals << i << ", " << tree.root->w << ", " << tree.root->n << std::endl;
+
+    if(i == 199 || i == 9999) {
+      int c_idx = 0;
+      for(auto c : tree.root->children) {
+        move_evals << c_idx << ", " << i + 1 << ", " << c->w << ", " << c->n << std::endl;
+        c_idx++;
+      }
+    }
+  }
+
+
+  // tree.iterate(200);
+  // int i = 0;
+  // 
+
+  // tree.iterate(10000 - 200);
+  // i = 0;
+  // for(auto c : tree.root->children) {
+  //   myfile << i << ", " << 10000 << ", " << c->w << ", " << c->n << std::endl;
+  //   i++;
+  // }
+
+
+  return 0;
+  
 #ifdef TORCH
   if (argc != 2) {
     std::cerr << "usage: example-app <path-to-exported-script-module>\n";

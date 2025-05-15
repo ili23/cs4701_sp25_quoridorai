@@ -341,6 +341,66 @@ axs[0, 2].set_xlabel("MCTS Iterations")
 axs[0, 2].set_ylabel("Strength", labelpad=-3)
 
 
+
+
+
+
+data = np.genfromtxt("MCTS_data2.csv", delimiter=",")
+
+def softmax(x):
+    exps = np.exp(x - np.max(x))  # subtract max for numerical stability
+    return exps / np.sum(exps)
+
+data1 = data[data[:, 1] == 200, 2:]
+data1 = data1[:, 0] / data1[:, 1]
+data1 = softmax(data1)
+
+data2 = data[data[:, 1] == 10000, 2:]
+data2 = data2[:, 0] / data2[:, 1]
+data2 = softmax(data2)
+print(data1)
+# Histogram settings
+bins = np.linspace(0, 1, data1.shape[0])
+width = data1.shape[0] * 0.4  # width of each bar
+
+x = np.arange(data1.shape[0])  # x positions, like 0, 1, 2, ...
+
+bar_width = 0.4  # Controls spacing between bars
+
+axs[1, 1].bar(x - bar_width/2, data1, width=bar_width, color='tab:blue', label='$200$ iters.')
+axs[1, 1].bar(x + bar_width/2, data2, width=bar_width, color='tab:orange', label='$10000$ iters.')
+
+# Optional: custom x-axis labels
+# plt.xticks(x, ['A', 'B', 'C', 'D'])  # or just use range if unnamed
+
+
+
+axs[1, 1].set_title("(B) Move evaluations", fontweight="bold")
+axs[1, 1].set_xlabel("Moves",labelpad=-7)
+axs[1, 1].set_ylabel("Distribution")
+
+axs[1, 1].set_yticks((0, 0.1, 0.2))
+axs[1, 1].set_ylim(0, 0.2)
+
+axs[1, 1].set_xticks(list(range(0, data1.shape[0])))
+axs[1, 1].xaxis.set_tick_params(labelcolor='none')
+
+axs[1, 1].legend()
+
+eval_data = np.genfromtxt("MCTS_data_evals2.csv", delimiter=",")
+
+axs[1, 2].plot(-(eval_data[:, 1] / eval_data[:, 2]), color="tab:purple")
+
+axs[1, 2].set_title("(C) Position evaluation", fontweight="bold")
+axs[1, 2].set_xticks((0, 5000, 10000))
+axs[1, 2].set_yticks((-1, 0, 1))
+axs[1, 2].axvline(200, linestyle="dashed", color="tab:blue")
+axs[1, 2].axvline(10000, linestyle="dashed", color="tab:orange")
+axs[1, 2].set_xlabel("MCTS Iterations")
+axs[1, 2].set_ylabel("Strength", labelpad=-3)
+
+
+
 plt.tight_layout()
 
 plt.show()
