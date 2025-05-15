@@ -1,3 +1,5 @@
+#include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -17,6 +19,7 @@ int main(int argc, const char* argv[]) {
   }
 #endif
 
+#ifdef GEN_TRAINING_DATA
   int i = 0;
 
   int lines_written = 0;
@@ -158,6 +161,76 @@ int main(int argc, const char* argv[]) {
   if (myfile.is_open()) {
     myfile.close();
   }
+
+#else
+
+  int p1MCTSiters = std::stoi(argv[1]);
+  int p2MCTSiters = std::stoi(argv[2]);
+
+  std::string filename = argc > 3 ? argv[3] : "MCTS_win_rate_data.csv";
+
+  bool appending = std::filesystem::exists(filename);
+
+  std::ofstream data_file(filename, std::ios::app);
+
+  if (!data_file) {
+    std::cerr << "Failed to open file for writing: " << filename << std::endl;
+    return -1;
+  }
+
+  if (!appending) {
+    data_file << "random_move_count, p1MCTS, p2MCTS, winner" << std::endl;
+  }
+
+  for (size_t i = 0; i < kGameCount; i++) {
+    MCTS tree;
+    Gamestate gs;
+
+    if (i % 100 == 0) {
+      std::cout << "Starting game " << i << "." << std::endl;
+    }
+
+    int moves_made = 0;
+    while (!gs.terminal()) {
+      tree.startNewSearch(gs);
+
+      if (moves_made < kRandomMovesCount) {
+        gs = tree.randomMoveApply();
+      } else {
+        tree.iterate(gs.p1Turn ? p1MCTSiters : p2MCTSiters);
+
+        gs = tree.bestMoveApply();
+      }
+
+      // std::cout << "Move: " << moves_made << std::endl;
+
+      // std::cout << "W " << tree.root->w << " N " << tree.root->n <<
+      // std::endl;
+
+      // gs.displayBoard();
+      moves_made++;
+    }
+
+    // Determine the winning player from the final game state
+    int winning_player;
+
+    assert(gs.terminal());
+
+    float result = gs.result();
+    if (result == 1.0) {
+      winning_player = 0;  // Player 0 (p1) won
+    } else if (result == -1.0) {
+      winning_player = 1;  // Player 1 (p2) won
+    } else {
+      winning_player = 2;  // Draw
+    }
+
+    data_file << kRandomMovesCount << ", " << p1MCTSiters << ", " << p2MCTSiters
+              << ", " << winning_player << std::endl;
+    data_file.flush();
+  }
+
+#endif
 
   return 0;
 };
