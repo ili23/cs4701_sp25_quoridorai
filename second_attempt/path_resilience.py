@@ -111,14 +111,14 @@ def add_weight_to_path_edges(path, delta):
 
 
 graph_original = deepcopy(graph)
-for _ in range(100):
+for _ in range(25):
     path1 = dijkstra_path(pawn1_pos)
     add_weight_to_path_edges(path1, 2)
 
 graph_path1 = deepcopy(graph)
 graph = deepcopy(graph_original)
 
-for _ in range(100):
+for _ in range(25):
     path2 = dijkstra_path(pawn2_pos, target="bottom")
     add_weight_to_path_edges(path2, 2)
 
@@ -131,7 +131,7 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
     ax.set_aspect("equal")
     ax.axis("off")
 
-    ax.set_title(title_text, fontweight='bold')
+    ax.set_title(title_text, fontweight="bold")
 
     # Draw squares
     for row in range(board_size):
@@ -148,7 +148,9 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
     # Draw pawns
     def draw_pawn(pos, color="black"):
         row, col = pos
-        circ = patches.Circle((col + 0.5, row + 0.5), 0.18, color=color, zorder=10)
+        circ = patches.Circle(
+            (col + 0.5, row + 0.5), 0.18, facecolor=color, zorder=10, edgecolor="black"
+        )
         ax.add_patch(circ)
 
     # Draw fences
@@ -187,7 +189,7 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
         draw_pawn(pawn1_pos, color="tab:red")
 
     if 2 in pawns_to_render:
-        draw_pawn(pawn2_pos, color="tab:orange")
+        draw_pawn(pawn2_pos, color="tab:green")
 
     # draw_path(path1, 'blue')
     # draw_path(path2, 'green')
@@ -240,7 +242,7 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
             1,
             hatch="//",
             fill=False,
-            edgecolor="tab:orange",
+            edgecolor="tab:green",
             alpha=0.8,
             linestyle="none",
         )
