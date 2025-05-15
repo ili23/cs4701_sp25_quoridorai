@@ -260,54 +260,114 @@ Gamestate::Gamestate() {
 }
 
 void Gamestate::displayBoard() {
-  std::cout << (p1Turn ? "0" : "1") << " to move" << std::endl;
-  std::cout << "P1 is at " << p1Pos.first << " " << p1Pos.second << std::endl;
-  std::cout << "P2 is at " << p2Pos.first << " " << p2Pos.second << std::endl;
+  // ANSI color codes for better visualization
+  const std::string BLUE = "\033[94m";    // For placed walls
+  const std::string GRAY = "\033[90m";    // For potential wall slots
+  const std::string GREEN = "\033[92m";   // For winner
+  const std::string RESET = "\033[0m";    // Reset color
 
+  std::cout << "Current board state:" << std::endl << std::endl;
   std::cout << "Evaluation is " << model_evaluate(*this) << std::endl;
-
-  for (int y = kBoardSize - 1; y >= 0; y--) {
-    std::cout << "  ";
-    for (int x = 0; x < kBoardSize; x++) {
-      if (vFences[x][y]) {
-        std::cout << "<==>";
-      } else {
-        std::cout << "----";
-      }
-      std::cout << " ";
+  
+  if (terminal()) {
+    if (moveCount >= kMaxMoves) {
+      std::cout << GREEN << "Game ended in a tie after " << moveCount << " moves!" << RESET << std::endl;
+    } else if (p1Pos.first == kBoardSize - 1) {
+      std::cout << GREEN << "Player 0 has won the game!" << RESET << std::endl;
+    } else if (p2Pos.first == 0) {
+      std::cout << GREEN << "Player 1 has won the game!" << RESET << std::endl;
     }
+  }
 
-    std::cout << std::endl;
-    for (int x = 0; x < kBoardSize; x++) {
-      if (x > 0 && hFences[x - 1][y]) {
-        std::cout << "[|]";
-      } else {
-        std::cout << " | ";
+  // Pre-compute which grid points have fences passing through them
+  bool hFenceExtended[kBoardSize][kBoardSize] = {};
+  bool vFenceExtended[kBoardSize][kBoardSize] = {};
+  
+  // Mark horizontal fences (each fence is 2 units long)
+  for (int row = 0; row < kBoardSize - 1; row++) {
+    for (int col = 0; col < kBoardSize - 1; col++) {
+      if (hFences[row][col]) {
+        hFenceExtended[row][col] = true;
+        // Extend fence horizontally if possible (for 2-unit length)
+        if (col < kBoardSize - 1) {
+          hFenceExtended[row][col+1] = true;
+        }
       }
-
-      if (std::make_pair(x, y) == p1Pos) {
-        std::cout << "0";
-      } else if (std::make_pair(x, y) == p2Pos) {
-        std::cout << "1";
-      } else {
-        std::cout << " ";
-      }
-
-      std::cout << " ";
-      if (x == kBoardSize - 1) {
-        if (hFences[x][y]) {
-          std::cout << "[|]" << std::endl;
-        } else {
-          std::cout << " | " << std::endl;
+    }
+  }
+  
+  // Mark vertical fences (each fence is 2 units long)
+  for (int row = 0; row < kBoardSize - 1; row++) {
+    for (int col = 0; col < kBoardSize - 1; col++) {
+      if (vFences[row][col]) {
+        vFenceExtended[row][col] = true;
+        // Extend fence vertically if possible (for 2-unit length)
+        if (row < kBoardSize - 1) {
+          vFenceExtended[row+1][col] = true;
         }
       }
     }
   }
 
-  std::cout << "  ";
-  for (size_t i = 0; i < kBoardSize; i++) {
-    std::cout << "---- ";
+  // Print the board with pawns and fences
+  for (int row = 0; row < kBoardSize; row++) {
+    // Print pawns and vertical fences
+    for (int col = 0; col < kBoardSize; col++) {
+      // Print pawn or empty space
+      if (std::make_pair(row, col) == p1Pos) {
+        std::cout << " 0 ";
+      } else if (std::make_pair(row, col) == p2Pos) {
+        std::cout << " 1 ";
+      } else {
+        std::cout << " . ";
+      }
+      
+      // Print vertical fence if not at right edge
+      if (col < kBoardSize - 1) {
+        if (vFenceExtended[row][col]) {
+          std::cout << BLUE << "║" << RESET;
+        } else {
+          std::cout << GRAY << "│" << RESET;
+        }
+      }
+    }
+    
+    std::cout << std::endl;  // New line after row
+    
+    // Print horizontal fences if not at bottom edge
+    if (row < kBoardSize - 1) {
+      for (int col = 0; col < kBoardSize; col++) {
+        if (hFenceExtended[row][col]) {
+          std::cout << BLUE << "═══" << RESET;
+        } else {
+          std::cout << GRAY << "───" << RESET;
+        }
+        
+        // Print intersection if not at right edge
+        if (col < kBoardSize - 1) {
+          std::cout << GRAY << "╬" << RESET;
+        }
+      }
+      
+      std::cout << std::endl;  // New line after horizontal fences
+    }
   }
+
+  std::cout << "Current player: " << (p1Turn ? "0" : "1") << std::endl;
+  std::cout << "Player 0 fences left: " << p1Fences << std::endl;
+  std::cout << "Player 1 fences left: " << p2Fences << std::endl;
+  std::cout << "Moves played: " << moveCount << std::endl;
+  
+  if (terminal()) {
+    if (moveCount >= kMaxMoves) {
+      std::cout << GREEN << "Game ended in a tie after " << moveCount << " moves!" << RESET << std::endl;
+    } else if (p1Pos.first == kBoardSize - 1) {
+      std::cout << GREEN << "Player 0 has won the game!" << RESET << std::endl;
+    } else if (p2Pos.first == 0) {
+      std::cout << GREEN << "Player 1 has won the game!" << RESET << std::endl;
+    }
+  }
+  
   std::cout << std::endl;
 }
 
@@ -364,6 +424,22 @@ float Gamestate::result() {
 std::vector<Move> Gamestate::getMoves() {
   std::vector<Move> moves;
 
+  // Get pawn moves for current player
+  std::vector<Move> pawnMoves = getPawnMoves();
+  moves.insert(moves.end(), pawnMoves.begin(), pawnMoves.end());
+
+  // Get fence moves for current player if they have fences remaining
+  if ((p1Turn ? p1Fences : p2Fences) > 0) {
+    std::vector<Move> fenceMoves = getFenceMoves();
+    moves.insert(moves.end(), fenceMoves.begin(), fenceMoves.end());
+  }
+
+  return moves;
+}
+
+std::vector<Move> Gamestate::getPawnMoves() {
+  std::vector<Move> moves;
+
   std::pair<int, int> startingPoint = p1Turn ? p1Pos : p2Pos;
   std::pair<int, int> otherPawn = p1Turn ? p2Pos : p1Pos;
 
@@ -371,6 +447,7 @@ std::vector<Move> Gamestate::getMoves() {
   std::pair<int, int> target =
       std::make_pair(startingPoint.first, startingPoint.second + 1);
 
+  // Check if moving right is valid (no vertical fence blocking)
   if (inBounds(target) && target != otherPawn &&
       !vFences[startingPoint.first][startingPoint.second]) {
     moves.emplace_back(target);
@@ -378,6 +455,7 @@ std::vector<Move> Gamestate::getMoves() {
 
   target = std::make_pair(startingPoint.first, startingPoint.second - 1);
 
+  // Check if moving left is valid (no vertical fence blocking)
   if (inBounds(target) && target != otherPawn &&
       !vFences[startingPoint.first][startingPoint.second - 1]) {
     moves.emplace_back(target);
@@ -385,6 +463,7 @@ std::vector<Move> Gamestate::getMoves() {
 
   target = std::make_pair(startingPoint.first + 1, startingPoint.second);
 
+  // Check if moving down is valid (no horizontal fence blocking)
   if (inBounds(target) && target != otherPawn &&
       !hFences[startingPoint.first][startingPoint.second]) {
     moves.emplace_back(target);
@@ -392,6 +471,7 @@ std::vector<Move> Gamestate::getMoves() {
 
   target = std::make_pair(startingPoint.first - 1, startingPoint.second);
 
+  // Check if moving up is valid (no horizontal fence blocking)
   if (inBounds(target) && target != otherPawn &&
       !hFences[startingPoint.first - 1][startingPoint.second]) {
     moves.emplace_back(target);
@@ -408,11 +488,15 @@ std::vector<Move> Gamestate::getMoves() {
     std::pair<int, int> jumpTarget =
         std::make_pair(otherPawn.first + dx, otherPawn.second + dy);
 
-    // Check if jump target is valid
-    if (inBounds(jumpTarget)) {
+    // Check if jump target is valid (in bounds)
+    bool straightJumpValid = inBounds(jumpTarget);
+    bool straightJumpBlocked = false;
+    
+    // Check fence between opponent and jump target (if in bounds)
+    if (straightJumpValid) {
       bool canJump = false;
 
-      // Check fence between opponent and jump target
+      // Use the same fence checking logic as for basic moves
       if (dx == 0) {   // Vertical jump
         if (dy > 0) {  // Jumping up
           canJump = !vFences[otherPawn.first][otherPawn.second];
@@ -430,117 +514,158 @@ std::vector<Move> Gamestate::getMoves() {
       if (canJump) {
         moves.emplace_back(jumpTarget);
       } else {
-        // If straight jump is blocked, try diagonal jumps
-        std::vector<std::pair<int, int>> diagonals;
+        straightJumpBlocked = true;
+      }
+    } else {
+      // If jump target is out of bounds, consider it blocked
+      straightJumpBlocked = true;
+    }
+    
+    // If straight jump is invalid (blocked by fence or out of bounds), try diagonal jumps
+    if (straightJumpBlocked) {
+      std::vector<std::pair<int, int>> diagonals;
 
-        // Add potential diagonal jumps (perpendicular to straight jump)
-        if (dx == 0) {  // If moving vertically, try horizontal diagonals
-          diagonals.push_back(
-              std::make_pair(otherPawn.first + 1, otherPawn.second));
-          diagonals.push_back(
-              std::make_pair(otherPawn.first - 1, otherPawn.second));
-        } else {  // If moving horizontally, try vertical diagonals
-          diagonals.push_back(
-              std::make_pair(otherPawn.first, otherPawn.second + 1));
-          diagonals.push_back(
-              std::make_pair(otherPawn.first, otherPawn.second - 1));
-        }
+      // Add potential diagonal jumps (perpendicular to straight jump)
+      if (dx == 0) {  // If moving vertically, try horizontal diagonals
+        diagonals.push_back(
+            std::make_pair(otherPawn.first + 1, otherPawn.second));
+        diagonals.push_back(
+            std::make_pair(otherPawn.first - 1, otherPawn.second));
+      } else {  // If moving horizontally, try vertical diagonals
+        diagonals.push_back(
+            std::make_pair(otherPawn.first, otherPawn.second + 1));
+        diagonals.push_back(
+            std::make_pair(otherPawn.first, otherPawn.second - 1));
+      }
 
-        // Check each diagonal jump
-        for (const auto& diagTarget : diagonals) {
-          if (inBounds(diagTarget) && diagTarget != startingPoint) {
-            bool canDiagJump = false;
+      // Check each diagonal jump
+      for (const auto& diagTarget : diagonals) {
+        if (inBounds(diagTarget) && diagTarget != startingPoint) {
+          bool canDiagJump = false;
 
-            // Check fence between opponent and diagonal target
-            if (diagTarget.first == otherPawn.first + 1) {  // Jumping right
-              canDiagJump = !hFences[otherPawn.first][otherPawn.second];
-            } else if (diagTarget.first ==
-                       otherPawn.first - 1) {  // Jumping left
-              canDiagJump = !hFences[otherPawn.first - 1][otherPawn.second];
-            } else if (diagTarget.second ==
-                       otherPawn.second + 1) {  // Jumping up
-              canDiagJump = !vFences[otherPawn.first][otherPawn.second];
-            } else if (diagTarget.second ==
-                       otherPawn.second - 1) {  // Jumping down
-              canDiagJump = !vFences[otherPawn.first][otherPawn.second - 1];
-            }
+          // Use the same fence checking logic as for basic moves
+          if (diagTarget.first == otherPawn.first + 1) {  // Jumping right
+            canDiagJump = !hFences[otherPawn.first][otherPawn.second];
+          } else if (diagTarget.first ==
+                     otherPawn.first - 1) {  // Jumping left
+            canDiagJump = !hFences[otherPawn.first - 1][otherPawn.second];
+          } else if (diagTarget.second ==
+                     otherPawn.second + 1) {  // Jumping up
+            canDiagJump = !vFences[otherPawn.first][otherPawn.second];
+          } else if (diagTarget.second ==
+                     otherPawn.second - 1) {  // Jumping down
+            canDiagJump = !vFences[otherPawn.first][otherPawn.second - 1];
+          }
 
-            if (canDiagJump) {
-              moves.emplace_back(diagTarget);
-            }
+          if (canDiagJump) {
+            moves.emplace_back(diagTarget);
           }
         }
       }
     }
   }
 
-  // Return if the current player has no more fences to place
+  return moves;
+}
+
+std::vector<Move> Gamestate::getFenceMoves() {
+  std::vector<Move> moves;
+
+  // Return empty list if the current player has no more fences to place
   if ((p1Turn ? p1Fences : p2Fences) <= 0) {
     return moves;
   }
 
   // Find valid fence moves
-  for (int x = 0; x < kBoardSize - 1; x++) {
-    for (int y = 0; y < kBoardSize - 1; y++) {
-      // Only consider valid fence placements where one more fence won't block
-      // paths
-      if (!hFences[x][y]) {
-        // Check if horizontal fence would cross with vertical fence
-        bool wouldCross = false;
-
-        // Check for crossing with vertical fence at this position or next
-        // position
-        if (vFences[x][y] || (x < kBoardSize - 2 && vFences[x + 1][y])) {
-          wouldCross = true;
-        }
-
-        // Check for adjacent fence that would conflict with 2-unit length
-        bool conflictLength = false;
-        if ((x > 0 && hFences[x - 1][y]) ||
-            (x < kBoardSize - 2 && hFences[x + 1][y])) {
-          conflictLength = true;
-        }
-
-        if (!wouldCross && !conflictLength) {
-          // Temporarily place fence to check path to end
-          hFences[x][y] = true;
-
-          if (pathToEnd(true) && pathToEnd(false)) {
-            moves.emplace_back(true, std::make_pair(x, y));
+  for (int row = 0; row < kBoardSize - 1; row++) {
+    for (int col = 0; col < kBoardSize - 1; col++) {
+      // Check horizontal fence placement
+      if (!hFences[row][col]) {
+        // Boundary check for horizontal fence (ensure it fits within the board)
+        if (col < kBoardSize - 1) {
+          bool isValid = true;
+          
+          // Check if horizontal fence already exists at this position
+          if (hFences[row][col]) {
+            isValid = false;
           }
-
-          // Remove temporary fence
-          hFences[x][y] = false;
+          
+          // Check for adjacent fence that would conflict with 2-unit length
+          if (isValid && col < kBoardSize - 2 && hFences[row][col + 1]) {
+            isValid = false; // Adjacent fence to right
+          }
+          
+          if (isValid && col > 0 && hFences[row][col - 1]) {
+            isValid = false; // Adjacent fence to left extends to our position
+          }
+          
+          // Check for crossing with vertical fence
+          if (isValid && vFences[row][col]) {
+            isValid = false; // Crossing with fence at current position
+          }
+          
+          if (isValid && col < kBoardSize - 2 && vFences[row][col + 1]) {
+            isValid = false; // Crossing with fence at end of 2-unit fence
+          }
+          
+          // If valid placement, temporarily place fence and check paths
+          if (isValid) {
+            // Temporarily place fence
+            hFences[row][col] = true;
+            
+            // Check if both players still have paths to goals
+            if (pathToEnd(true) && pathToEnd(false)) {
+              moves.emplace_back(true, std::make_pair(row, col));
+            }
+            
+            // Remove temporary fence
+            hFences[row][col] = false;
+          }
         }
       }
-
-      if (!vFences[x][y]) {
-        // Check if vertical fence would cross with horizontal fence
-        bool wouldCross = false;
-
-        // Check for crossing with horizontal fence at this position or next
-        // position
-        if (hFences[x][y] || (y < kBoardSize - 2 && hFences[x][y + 1])) {
-          wouldCross = true;
-        }
-
-        // Check for adjacent fence that would conflict with 2-unit length
-        bool conflictLength = false;
-        if ((y > 0 && vFences[x][y - 1]) ||
-            (y < kBoardSize - 2 && vFences[x][y + 1])) {
-          conflictLength = true;
-        }
-
-        if (!wouldCross && !conflictLength) {
-          // Temporarily place fence to check path to end
-          vFences[x][y] = true;
-
-          if (pathToEnd(true) && pathToEnd(false)) {
-            moves.emplace_back(false, std::make_pair(x, y));
+      
+      // Check vertical fence placement
+      if (!vFences[row][col]) {
+        // Boundary check for vertical fence (ensure it fits within the board)
+        if (row < kBoardSize - 1) {
+          bool isValid = true;
+          
+          // Check if vertical fence already exists at this position
+          if (vFences[row][col]) {
+            isValid = false;
           }
-
-          // Remove temporary fence
-          vFences[x][y] = false;
+          
+          // Check for adjacent fence that would conflict with 2-unit length
+          if (isValid && row < kBoardSize - 2 && vFences[row + 1][col]) {
+            isValid = false; // Adjacent fence below
+          }
+          
+          if (isValid && row > 0 && vFences[row - 1][col]) {
+            isValid = false; // Adjacent fence above extends to our position
+          }
+          
+          // Check for crossing with horizontal fence
+          if (isValid && hFences[row][col]) {
+            isValid = false; // Crossing with fence at current position
+          }
+          
+          if (isValid && row < kBoardSize - 2 && hFences[row + 1][col]) {
+            isValid = false; // Crossing with fence at end of 2-unit fence
+          }
+          
+          // If valid placement, temporarily place fence and check paths
+          if (isValid) {
+            // Temporarily place fence
+            vFences[row][col] = true;
+            
+            // Check if both players still have paths to goals
+            if (pathToEnd(true) && pathToEnd(false)) {
+              moves.emplace_back(false, std::make_pair(row, col));
+            }
+            
+            // Remove temporary fence
+            vFences[row][col] = false;
+          }
         }
       }
     }
@@ -559,6 +684,12 @@ void Gamestate::displayAllMoves() {
 }
 
 bool Gamestate::pathToEnd(bool p1) {
+  // Early optimization: if few fences have been placed, a path must exist
+  int totalFencesPlaced = (kStartingFences - p1Fences) + (kStartingFences - p2Fences);
+  if (totalFencesPlaced <= 2) { // update this number to 4 when we bump up the size of the board
+    return true;
+  }
+
   bool reachable[kBoardSize][kBoardSize] = {};
 
   std::queue<std::pair<int, int>> toSearch;
@@ -620,8 +751,8 @@ bool Gamestate::pathToEnd(bool p1) {
   int goalRow = p1 ? kBoardSize - 1 : 0;
 
   // Check if any position in the goal row is reachable
-  for (int x = 0; x < kBoardSize; x++) {
-    if (reachable[x][goalRow]) return true;
+  for (int col = 0; col < kBoardSize; col++) {
+    if (reachable[goalRow][col]) return true;
   }
 
   return false;

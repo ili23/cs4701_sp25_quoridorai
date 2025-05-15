@@ -67,7 +67,15 @@ class Gamestate {
 
   std::unique_ptr<Gamestate> applyMove(const Move& m) const;
 
+  // Get all valid moves for the current player
   std::vector<Move> getMoves();
+  
+  // Get valid pawn moves for the current player
+  std::vector<Move> getPawnMoves();
+  
+  // Get valid fence placement moves for the current player
+  std::vector<Move> getFenceMoves();
+
   bool pathToEnd(bool p1);
 
   // Return true if the game is over
