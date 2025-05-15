@@ -561,12 +561,41 @@ std::vector<Move> Gamestate::getPawnMoves() {
     }
   }
 
-
   // Check if opponent is adjacent
   int dx = otherPawn.first - startingPoint.first;
   int dy = otherPawn.second - startingPoint.second;
-
+  // // Check if a wall exists between the two pawns
+  // bool wallBetween = false;
+  
+  // // Check for wall between player and opponent
   if (abs(dx) + abs(dy) == 1) {  // Adjacent pawns
+  //   if (dx == 0) {  // Vertical adjacency
+  //     if (dy > 0) {  // Opponent is to the right
+  //       // Check for vertical fence between them
+  //       wallBetween = vFences[startingPoint.first][startingPoint.second] || 
+  //                     vFences[startingPoint.first-1][startingPoint.second];
+  //     } else {  // Opponent is to the left
+  //       // Check for vertical fence between them
+  //       wallBetween = vFences[startingPoint.first][startingPoint.second-1] || 
+  //                     vFences[startingPoint.first-1][startingPoint.second-1];
+  //     }
+  //   } else {  // Horizontal adjacency
+  //     if (dx > 0) {  // Opponent is below
+  //       // Check for horizontal fence between them
+  //       wallBetween = hFences[startingPoint.first][startingPoint.second] || 
+  //                     hFences[startingPoint.first][startingPoint.second-1];
+  //     } else {  // Opponent is above
+  //       // Check for horizontal fence between them
+  //       wallBetween = hFences[startingPoint.first-1][startingPoint.second] || 
+  //                     hFences[startingPoint.first-1][startingPoint.second-1];
+  //     }
+  //   }
+
+  //   // If there's a wall between, we can't jump
+  //   if (wallBetween) {
+  //     return moves;
+  //   }
+    
     // Direction from player to opponent
     // Try straight jump over opponent
     std::pair<int, int> jumpTarget =
@@ -751,7 +780,6 @@ bool Gamestate::pathToEnd(bool p1) {
 
   // Start at current player position
   std::pair<int, int> startPos = p1 ? p1Pos : p2Pos;
-  std::pair<int, int> otherPawn = p1 ? p2Pos : p1Pos;
   
   toSearch.push(startPos);
   reachable[startPos.first][startPos.second] = true;
@@ -769,10 +797,40 @@ bool Gamestate::pathToEnd(bool p1) {
     
     // Check all four basic directions
     for (const auto& dir : directions) {
-      std::pair<int, int> target = {currentPos.first + dir.first, currentPos.second + dir.second};
+      int dx = dir.first;
+      int dy = dir.second;
+      std::pair<int, int> target = {currentPos.first + dx, currentPos.second + dy};
       
-      if (inBounds(target) && !reachable[target.first][target.second] && 
-          isValidBasicPawnMove(currentPos, dir.first, dir.second, otherPawn)) {
+      // Check if the move is within bounds and not already visited
+      if (!inBounds(target) || reachable[target.first][target.second]) {
+        continue;
+      }
+
+      bool blocked = false;
+      
+      // Check for fences based on movement direction
+      if (dx == 0 && dy == 1) {  // Moving right
+        // Check vertical fence blocking right movement
+        blocked = vFences[currentPos.first][currentPos.second] || 
+                 (currentPos.first > 0 && vFences[currentPos.first-1][currentPos.second]);
+      }
+      else if (dx == 0 && dy == -1) {  // Moving left
+        // Check vertical fence blocking left movement
+        blocked = vFences[currentPos.first][currentPos.second-1] || 
+                 (currentPos.first > 0 && vFences[currentPos.first-1][currentPos.second-1]);
+      }
+      else if (dx == 1 && dy == 0) {  // Moving down
+        // Check horizontal fence blocking downward movement
+        blocked = hFences[currentPos.first][currentPos.second] || 
+                 (currentPos.second > 0 && hFences[currentPos.first][currentPos.second-1]);
+      }
+      else if (dx == -1 && dy == 0) {  // Moving up
+        // Check horizontal fence blocking upward movement
+        blocked = hFences[currentPos.first-1][currentPos.second] || 
+                 (currentPos.second > 0 && hFences[currentPos.first-1][currentPos.second-1]);
+      }
+      
+      if (!blocked) {
         reachable[target.first][target.second] = true;
         toSearch.emplace(target);
       }
