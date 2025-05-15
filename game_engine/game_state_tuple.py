@@ -5,7 +5,7 @@ import copy
 PLAYER_ONE = 0
 PLAYER_TWO = 1
 DIRECTIONS = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-BOARD_SIZE = 9
+BOARD_SIZE = 5
 
 # Game state is represented as a tuple of:
 # (
@@ -22,7 +22,7 @@ def get_current_player(state):
 def create_initial_state():
     """Create the initial game state tuple"""
     # Initial pawn positions
-    pawns = ((0, 4), (8, 4))
+    pawns = ((0, BOARD_SIZE // 2), (BOARD_SIZE - 1, BOARD_SIZE // 2))
     
     # Initial fence counts
     fences = (10, 10)
