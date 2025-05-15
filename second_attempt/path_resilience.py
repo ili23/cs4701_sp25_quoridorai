@@ -111,14 +111,14 @@ def add_weight_to_path_edges(path, delta):
 
 
 graph_original = deepcopy(graph)
-for _ in range(25):
+for _ in range(100):
     path1 = dijkstra_path(pawn1_pos)
     add_weight_to_path_edges(path1, 2)
 
 graph_path1 = deepcopy(graph)
 graph = deepcopy(graph_original)
 
-for _ in range(25):
+for _ in range(100):
     path2 = dijkstra_path(pawn2_pos, target="bottom")
     add_weight_to_path_edges(path2, 2)
 

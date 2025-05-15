@@ -42,11 +42,17 @@ We present a Monte Carlo Tree Search and neural network evaluation method to pla
 \end{abstract}
 
 \section{Introduction}
-Quoridor is a deterministic, two player game with perfect information. Each player has a pawn on a square board and several fences. They start on opposing sides of the board, and their goal is simple: to reach their opponent's back row. On each turn, they may either opt to move their pawn a single space or place a fence. Fences sit between board spaces and block both pawns from moving across. Players are required to leave at least one viable path for their opponent to reach the goal, and the first player to reach their corresponding goal area wins the game.
+Quoridor is a deterministic, two player game with perfect information. Each player has a pawn on a square board and a limited number of fences. Players start on opposing sides of the board, and their goal is simple: to reach their opponent's back row. On each turn, they may either opt to move their pawn a single space or to place a fence. Fences sit between board spaces and block pawns from moving across. Players are required to leave at least one viable path for their opponent to reach the goal, and the first player to reach their corresponding goal area wins the game.
+
+\section{Project Description}
+
+We sought to make an AI agent that was capable of playing Quoridor. Initially, we intended to focus on a primarily convolutional neural network-based approcah and evaluate it against an agent that played using random rollouts. As we progressed, we found that using random rollouts presented significant challenges, eventually abandoning their use altogether. We also found that the convolutional nerual network was underperforming. We investigated deeper into the mechanics of the game, and outsourced some complex pathfinding logic to features before the network. Our second network had fewer parameters, but performed better due to the conputations encoded in its input features.
+
+
 
 \subsection{Monte Carlo Tree Search}
 
-In principle, Quoridor could be a solved game. However, each position has a staggering number of possible moves which makes a brute force tree search infesible, and the multitide of interacting ``pawn jump'' moves makes a case analysis proof impractically complicated. Instead, we present an AI agent to play the game using a Monte Carlo Tree Search (MCTS) and a neural network based game state evaluation method.
+In principle, Quoridor could be a solved game. However, each position has a staggering number of possible moves which makes a brute force tree search infesible. The multitide of interacting ``pawn jump'' moves makes a case analysis proof impractically complicated. Instead, we present an AI agent to play the game using a Monte Carlo Tree Search (MCTS) and a neural network based game state evaluation method.
 
 \textbf{Citation needed for MCTS}
 
@@ -56,29 +62,27 @@ Exploitation, on the other hand, focuses on more deeply expanding a few promisin
 
 \subsection{Heuristics}
 
-If a game tree can be fully expanded, one can use trivial algorithms to determine which player can force a win. (The Minimax decision rule is one example.\textbf{CITATION HERE}) When the game tree cannot be fully expanded, it is necessary to create a heuristic that can determine the value of a position. The value of a position is a scalar value that indicates which player is more likely to win. The accuracy of the heuristic function is directly correlated with the playing strength of the AI agnet. A perfect heuristic that could always determine which player has forced win would lead to an optimal AI agent. In this paper, we compare four distinct heuristic methods:
+If a game tree can be fully expanded, one can use trivial algorithms to determine which player can force a win. (The Minimax decision rule is one example.\textbf{CITATION HERE}) When the game tree cannot be fully expanded, it is necessary to create a heuristic that can determine the value of a position. The value of a position is a scalar value that indicates which player is more likely to win. The accuracy of the heuristic function is directly correlated with the playing strength of the AI agnet. A perfect heuristic that could always determine which player has forced win would lead to an optimal AI agent. In this paper, we compare five distinct heuristic methods:
 
 \begin{enumerate}
+    \item \textbf{Random rollouts.} Moves are played randomly until one player wins. The evaluation corresponds to the winning player.
     \item \textbf{Naive.} Has no knowledge of the game at all. Always gives a neural evaluation unless a player has successfully won the game. Serves as a baseline for comparison.
-    \item \textbf{Basic.} Gives a basic scaled value based on the Manhattan distance to the goal. It doesn't take any pathfinding or advanced logic into account.
+    \item \textbf{Basic.} Gives a basic scaled value based on the Manhattan distance to the goal. Does not take any pathfinding or advanced logic into account.
     \item \textbf{Convolutional Neural Network.} A convolutional neural network that analyses the board position.
-    \item \textbf{Path Resiliency Neural Network.} A MLP neural network that has advanced knowledge of potential paths to the goal encoded as features.
+    \item \textbf{Path Resiliency Neural Network.} A MLP that has advanced knowledge of potential paths to the goal encoded as features.
 \end{enumerate}
 
 Quoridor has several variations, and many of them use a $9 \times 9$ sized board. We have opted to use a $5 \times 5$ board due to limited computing resources. 
 
-\section{Methods}
 
-\subsection{Neural Network Featues}
-
-\subsubsection{Shortest Path Resiliency}
+\subsection{Shortest Path Resiliency}
 
 The player with the shortest path to the goal will win without intervention by their opponent. The primary intervention is fences, which can be placed to block the previously existing shortest path between a player and the goal region. However, determining the ideal placement of fences is not trivial. Some placements will require more of a detour than other, and some placements will impede the player placing them more than their opponent. We created the resiliency method to provide our neural network with insight into the  impact fence placements will have on the outcome of a given game position.
 
 This technique aims to find ``bottlenecks,'' or fence placements that will optimally disrupt the opponent while providing minimal disruption to the current player's path. In doing so, the model will be able to determine how resilient a player's path to the goal is. Paths with high resiliency are difficult to disrupt with fence placements. On the other hand, paths with low resiliency may be shorter in absolute distance, but they are easily made much longer by a few well-chosen fences.
 
 At first, this technique takes the board position and constructs a graph with each board space represented as a node. Path resiliency is calculated independently for each player. Weighted, undirected edges are added between adjacent board positions that are not separated by a fence. These represent valid pawn moves. Each edge is initialized to the same starting weight $w_{init}$.
-(For pathfinding simplicity, there is final node that is connected to all of the nodes in the goal area by an edge of weight 0. Path finding algorithms can target this node, and in doing so, find an optimal path to any part of the goal area.) % TODO: Move this to a figure caption somehow? It's too wordy for the main paragraph
+(For pathfinding simplicity, there is final node that is connected to all of the nodes in the goal area by an edge of weight 0. Pathfinding algorithms can target this node, and in doing so, find an optimal path to any part of the goal area.) % TODO: Move this to a figure caption somehow? It's too wordy for the main paragraph
 Then, a two step iterative process begins:
 
 \begin{enumerate}
@@ -107,8 +111,8 @@ There are several features we create for our neural network using this process. 
     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
 \end{enumerate}
 
-\section{Discussion}
-Discuss the implications of your findings. Keep paragraphs short and precise.
+\section{Evaluation}
+Explain what assessment you conducted concerning your project.
 
 % \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.
