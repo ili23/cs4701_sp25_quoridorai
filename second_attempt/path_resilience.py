@@ -220,7 +220,6 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
                     [c1 + 0.5, c2 + 0.5], [r1 + 0.5, r2 + 0.5], color=color, linewidth=3
                 )
 
-
         # Step 4: Add colorbar
         sm = cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])  # Dummy data for the colorbar
@@ -235,12 +234,28 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
     # Plot small red dots
     # ax.scatter(xx_flat, yy_flat, s=0.01, color='red')  # s=2 is very small dot size
     if graph_input is None:
-        rect = patches.Rectangle((0, 0), 5, 1, hatch='//', fill=False, edgecolor='tab:orange', alpha=0.8, linestyle="none")
-        rect2 = patches.Rectangle((0, 4), 5, 1, hatch='//', fill=False, edgecolor='tab:red', alpha=0.8, linestyle="none")
+        rect = patches.Rectangle(
+            (0, 0),
+            5,
+            1,
+            hatch="//",
+            fill=False,
+            edgecolor="tab:orange",
+            alpha=0.8,
+            linestyle="none",
+        )
+        rect2 = patches.Rectangle(
+            (0, 4),
+            5,
+            1,
+            hatch="//",
+            fill=False,
+            edgecolor="tab:red",
+            alpha=0.8,
+            linestyle="none",
+        )
         ax.add_patch(rect)
         ax.add_patch(rect2)
-
-
 
 
 final_graph = {}
