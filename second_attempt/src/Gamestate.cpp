@@ -198,7 +198,22 @@ float Gamestate::model_evaluate(Gamestate& g) {
 
   return output.item<float>();
 #else
-  return 0;
+  int currentPlayerDistance, oppDistance;
+
+  if (g.p1Turn) {
+    currentPlayerDistance = kBoardSize - g.p1Pos.first - 1;
+    oppDistance = g.p2Pos.first;
+  } else {
+    currentPlayerDistance = g.p2Pos.first;
+    oppDistance = kBoardSize - g.p1Pos.first - 1;
+  }
+
+  // TODO: Remove this !p1Turn. Used to give different players different
+  // heuristics
+  if (currentPlayerDistance == oppDistance || !g.p1Turn) return 0;
+  return (currentPlayerDistance < oppDistance ? 1 : -1) * 0.8 *
+         ((float)std::abs(currentPlayerDistance - oppDistance)) /
+         (kBoardSize - 2);
 #endif
 }
 
