@@ -534,7 +534,23 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   return (g.p1Turn ? 1 : -1) * tree_eval(g.resiliency_vector());
 #endif
 
-#ifdef TORCH
+#ifndef TORCH
+
+  int currentPlayerDistance, oppDistance;
+
+  // Model eval should always be from the perspective of player 1
+  currentPlayerDistance = kBoardSize - g.p1Pos.first - 1;
+  oppDistance = g.p2Pos.first;
+
+  // TODO: Remove this !p1Turn. Used to give different players different
+  // heuristics
+  // if (currentPlayerDistance == oppDistance || !g.p1Turn) return 0;
+
+  return (currentPlayerDistance < oppDistance ? 1 : -1) * 0.8 *
+         ((float)std::abs(currentPlayerDistance - oppDistance)) /
+         (kBoardSize - 2);
+
+#else
   // Use game_state_to_tensors to get all necessary tensors
   auto [board_tensor, fence_counts, move_count] = game_state_to_tensors(g);
 
@@ -547,23 +563,7 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   torch::Tensor output = module.forward(inputs).toTensor();
 
   return output.item<float>();
-#else
-  int currentPlayerDistance, oppDistance;
 
-  if (g.p1Turn) {
-    currentPlayerDistance = kBoardSize - g.p1Pos.first - 1;
-    oppDistance = g.p2Pos.first;
-  } else {
-    currentPlayerDistance = g.p2Pos.first;
-    oppDistance = kBoardSize - g.p1Pos.first - 1;
-  }
-
-  // TODO: Remove this !p1Turn. Used to give different players different
-  // heuristics
-  if (currentPlayerDistance == oppDistance || !g.p1Turn) return 0;
-  return (currentPlayerDistance < oppDistance ? 1 : -1) * 0.8 *
-         ((float)std::abs(currentPlayerDistance - oppDistance)) /
-         (kBoardSize - 2);
 #endif
 }
 

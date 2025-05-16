@@ -39,11 +39,13 @@ Node::Node(Gamestate &g, std::shared_ptr<Node> p, Move m_) {
 }
 
 void Node::displayChildren() {
+  int idx = 0;
   for (auto c : children) {
-    std::cout << "Possible move:" << std::endl;
+    std::cout << idx << ". Possible move:" << std::endl;
     std::cout << "W " << c->w << " N " << c->n << std::endl;
     c->state.displayBoard();
     std::cout << std::endl << std::endl;
+    idx++;
   }
 }
 

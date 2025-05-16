@@ -113,8 +113,8 @@ void generateHistogramAndMCTSEval() {
   gs.displayBoard();
 
   std::ofstream data_evals, move_evals;
-  data_evals.open("f_forest_eval_over_time.csv");
-  move_evals.open("e_forest_move_distr.csv");
+  data_evals.open("../Figure_Data/Adv_tactic/c_naive_eval_over_time.csv");
+  move_evals.open("../Figure_Data/Adv_tactic/b_naive_move_distr.csv");
 
   MCTS tree;
 
@@ -127,7 +127,7 @@ void generateHistogramAndMCTSEval() {
   std::cout << std::endl;
 
   for (int i = 0; i < 5000; i++) {
-    tree.iterate(1, true);
+    tree.iterate(1, false);
     data_evals << i << ", " << tree.root->w << ", " << tree.root->n
                << std::endl;
 

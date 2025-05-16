@@ -138,7 +138,17 @@ def draw_pawn(pos, ax, color="black", **kwargs):
     ax.add_patch(circ)
 
 
-def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
+def render(
+    ax,
+    title_text,
+    graph_input,
+    pawns_to_render,
+    colorbar=False,
+    fences=fences,
+    pawn1_pos=pawn1_pos,
+    pawn2_pos=pawn2_pos,
+    dotted_fences=[],
+):
     ax.set_xlim(-0.05, board_size + 0.05)
     ax.set_ylim(-0.05, board_size + 0.05)
     ax.set_aspect("equal")
@@ -159,21 +169,25 @@ def render(ax, title_text, graph_input, pawns_to_render, colorbar=False):
     ax.add_patch(rect)
 
     # Draw fences
-    def draw_fence(row, col, orientation, color="black"):
+    def draw_fence(row, col, orientation, color="black", **kwargs):
         if orientation == "v":
             # Fence between (row, col) and (row, col+1)
             x = col
             y = row + 0.95
-            rect = patches.Rectangle((x, y), 1, 0.1, color=color, zorder=10)
+            rect = patches.Rectangle((x, y), 1, 0.1, color=color, zorder=10, **kwargs)
         else:  # 'v'
             # Fence between (row, col) and (row+1, col)
             x = col + 0.95
             y = row
-            rect = patches.Rectangle((x, y), 0.1, 1, color=color, zorder=10)
+            rect = patches.Rectangle((x, y), 0.1, 1, color=color, zorder=10, **kwargs)
+
         ax.add_patch(rect)
 
     for row, col, orientation in fences:
         draw_fence(row, col, orientation)
+
+    for row, col, orientation in dotted_fences:
+        draw_fence(row, col, orientation, color="tab:orange", alpha=0.4, linewidth=3)
 
     # Draw labels
     # for col in range(board_size):
@@ -290,25 +304,21 @@ fences = [
     (3, 3, "v"),
     (3, 4, "v"),
 ]
-render(axs[0, 0], "(A) Example position", None, (1, 2))
 
 # PUT DATA ABOUT DISTRIBUTION HERE
 
-def render_hist(ax, path, title, legend=False):
-    data = np.genfromtxt(path, delimiter=",")
 
+def render_hist(ax, path, title, legend=False, winning_moves=(17,)):
+    data = np.genfromtxt(path, delimiter=",")
 
     def softmax(x):
         exps = np.exp(x - np.max(x))  # subtract max for numerical stability
         return exps / np.sum(exps)
 
-
     data1 = data[data[:, 1] == 200, 2:]
     data1 = data1[:, 0] / data1[:, 1]
 
-
     data1 = softmax(data1)
-
 
     data2 = data[data[:, 1] == 5000, 2:]
     data2 = data2[:, 0] / data2[:, 1]
@@ -323,7 +333,11 @@ def render_hist(ax, path, title, legend=False):
     bar_width = 0.4  # Controls spacing between bars
 
     ax.bar(
-        x - bar_width / 2, data1, width=bar_width, color="tab:blue", label="$200$ iters."
+        x - bar_width / 2,
+        data1,
+        width=bar_width,
+        color="tab:blue",
+        label="$200$ iters.",
     )
     ax.bar(
         x + bar_width / 2,
@@ -337,15 +351,18 @@ def render_hist(ax, path, title, legend=False):
 
     ax.set_ylabel("Softmax density", labelpad=0)
 
+    ax.set_xticks(winning_moves)
+    ax.set_xticklabels(["*"] * len(winning_moves))
+    ax.set_xlabel("Legal moves", labelpad=-5)
+
     ax.set_ylim((0, 0.2))
     ax.set_yticks((0, 0.1, 0.2))
-    ax.legend(loc='upper left')
+    ax.legend(loc="upper left")
 
-render_hist(axs[0, 1], "Figure_Data/MCTS_Distr/b_naive_move_distr.csv", "(B) Naive move evaluations", True)
-render_hist(axs[0, 2], "Figure_Data/MCTS_Distr/e_forest_move_distr.csv", "(C) Forest move evaluations", False)
 
 # Optional: custom x-axis labels
 # plt.xticks(x, ['A', 'B', 'C', 'D'])  # or just use range if unnamed
+
 
 def graph_eval_data(ax, path, title, lines=False):
 
@@ -363,12 +380,41 @@ def graph_eval_data(ax, path, title, lines=False):
     ax.set_ylabel("Strength", labelpad=-3)
 
 
-graph_eval_data(axs[1, 0], "Figure_Data/MCTS_Distr/c_naive_eval_over_time.csv", "(D) Naive position evaluation", True)
-graph_eval_data(axs[1, 1], "Figure_Data/MCTS_Distr/d_basic_eval_over_time.csv", "(E) Basic position evaluation")
-graph_eval_data(axs[1, 2], "Figure_Data/MCTS_Distr/f_forest_eval_over_time.csv", "(F) Forest position evaluation", True)
+if __name__ == "__main__":
+    render(axs[0, 0], "(A) Simple tactic", None, (1, 2))
 
+    render_hist(
+        axs[0, 1],
+        "Figure_Data/MCTS_Distr/b_naive_move_distr.csv",
+        "(B) Naive move evaluations",
+        True,
+    )
+    render_hist(
+        axs[0, 2],
+        "Figure_Data/MCTS_Distr/e_forest_move_distr.csv",
+        "(C) Forest move evaluations",
+        False,
+    )
 
-plt.tight_layout()
+    graph_eval_data(
+        axs[1, 0],
+        "Figure_Data/MCTS_Distr/c_naive_eval_over_time.csv",
+        "(D) Naive position evaluation",
+        True,
+    )
+    graph_eval_data(
+        axs[1, 1],
+        "Figure_Data/MCTS_Distr/d_basic_eval_over_time.csv",
+        "(E) Basic position evaluation",
+    )
+    graph_eval_data(
+        axs[1, 2],
+        "Figure_Data/MCTS_Distr/f_forest_eval_over_time.csv",
+        "(F) Forest position evaluation",
+        True,
+    )
 
-# plt.show()
-plt.savefig("../report/MCTS_eval.png", dpi=100)
+    plt.tight_layout()
+
+    # plt.show()
+    plt.savefig("../report/MCTS_eval.png", dpi=400)
