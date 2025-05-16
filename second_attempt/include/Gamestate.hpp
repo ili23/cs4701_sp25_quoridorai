@@ -42,6 +42,8 @@ class Gamestate {
 
   static float model_evaluate(Gamestate& g, bool smart_eval);
 
+  std::vector<float> resiliency_vector();
+
   std::pair<int, int> p1Pos;
   std::pair<int, int> p2Pos;
 

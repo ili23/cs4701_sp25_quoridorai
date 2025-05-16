@@ -12,6 +12,94 @@
 #endif
 
 int main(int argc, const char* argv[]) {
+  int i = 0;
+
+  int lines_written = 0;
+  int file_num = 0;
+
+  std::ofstream myfile;
+  std::string path = "data/gamestate" + std::to_string(file_num) + ".csv";
+  bool file_exists = std::filesystem::exists(path);
+  myfile.open(path, std::ios::app);  // Open in append mode
+
+  // Write column headers only if file is new
+  if (!file_exists) {
+    myfile << "outcome, data parameters" << std::endl;
+  }
+
+  while (i < kGameCount) {
+    if (i % 100 == 0) {
+      std::cout << "Starting game " << i << std::endl;
+    }
+
+    MCTS tree;
+
+    Gamestate gs;
+
+    std::vector<Gamestate> positions;
+
+    int moves_made = 0;
+    while (!gs.terminal()) {
+      tree.startNewSearch(gs);
+
+      if (moves_made < kRandomMovesCount) {
+        gs = tree.randomMoveApply();
+      } else {
+        tree.iterate(kSearchIterations, true);
+        gs = tree.bestMoveApply();
+      }
+
+      if (moves_made >= kRandomMovesCount) {
+        positions.push_back(gs);
+      }
+
+      moves_made++;
+    }
+
+    // Determine the winning player from the final game state
+    int winning_player = -1;
+    if (gs.terminal()) {
+      float result = gs.result();
+      if (result == 1.0) {
+        winning_player = 0;  // Player 0 (p1) won
+      } else if (result == -1.0) {
+        winning_player = 1;  // Player 1 (p2) won
+      } else {
+        winning_player = 2;  // Draw
+      }
+    }
+
+    // Write positions to a csv
+
+    for (auto gs : positions) {
+      int result;
+      if (winning_player == 0 && gs.p1Turn ||
+          winning_player == 1 && !gs.p1Turn) {
+        result = 1;
+      } else if (winning_player != 2) {
+        result = -1;
+      } else {
+        result = 0;
+      }
+
+      myfile << result;
+      for (auto v : gs.resiliency_vector()) {
+        myfile << ", " << v;
+      }
+      myfile << std::endl;
+    }
+
+    lines_written += positions.size();
+
+    i++;
+  }
+
+  if (myfile.is_open()) {
+    myfile.close();
+  }
+
+  return 0;
+
   // Generating histogram (from fixed positions)
   // Gamestate gs;
   // gs.displayBoard();

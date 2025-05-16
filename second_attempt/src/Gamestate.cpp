@@ -1,7 +1,10 @@
 #include "Gamestate.hpp"
 
 #include <cassert>
+#include <functional>
+#include <iomanip>
 #include <iostream>
+#include <limits>
 #include <queue>
 
 #ifdef TORCH
@@ -175,6 +178,262 @@ void Gamestate::write_csv(std::ofstream& f, int winning_player) {
   f << "," << outcome << std::endl;
 }
 
+using Edge = std::pair<int, int>;  // (fromNodeID, toNodeID)
+
+// Returns shortest distance and path as list of edges using node IDs
+std::pair<float, std::vector<Edge>> dijkstraRowWithPathIDs(
+    const std::vector<std::vector<std::pair<int, int>>>& adj, int kBoardSize,
+    int startRow, int startCol, bool targetBottom) {
+  int totalNodes = kBoardSize * kBoardSize;
+  std::vector<float> dist(totalNodes, std::numeric_limits<float>::infinity());
+  std::vector<std::optional<int>> parent(totalNodes, std::nullopt);
+  std::vector<bool> visited(totalNodes, false);
+
+  using pii = std::pair<float, int>;  // (distance, nodeID)
+  std::priority_queue<pii, std::vector<pii>, std::greater<pii>> pq;
+
+  int start = startRow * kBoardSize + startCol;
+  dist[start] = 0.0f;
+  pq.push({0.0f, start});
+
+  int end = -1;
+
+  while (!pq.empty()) {
+    auto [currDist, u] = pq.top();
+    pq.pop();
+
+    if (visited[u]) continue;
+    visited[u] = true;
+
+    int row = u / kBoardSize;
+    if ((row == 0 && targetBottom) ||
+        (row == kBoardSize - 1 && !targetBottom)) {
+      end = u;
+      break;
+    }
+
+    for (const auto& [v, weight] : adj[u]) {
+      if (!visited[v] && dist[u] + weight < dist[v]) {
+        dist[v] = dist[u] + weight;
+        parent[v] = u;
+        pq.push({dist[v], v});
+      }
+    }
+  }
+
+  std::vector<Edge> path;
+
+  if (end != -1) {
+    // Reconstruct path by backtracking from end to start
+    int curr = end;
+    while (parent[curr].has_value()) {
+      int prev = parent[curr].value();
+      path.emplace_back(prev, curr);
+      curr = prev;
+    }
+
+    std::reverse(path.begin(), path.end());
+  }
+
+  return {end == -1 ? -1.0f : dist[end], path};
+}
+
+void addEdgeWeight(std::vector<std::vector<std::pair<int, int>>>& adj, int u,
+                   int v, int newWeight) {
+  // Update u -> v
+  for (auto& p : adj[u]) {
+    if (p.first == v) {
+      p.second += newWeight;
+      break;
+    }
+  }
+
+  // Update v -> u (because the graph is undirected)
+  for (auto& p : adj[v]) {
+    if (p.first == u) {
+      p.second += newWeight;
+      break;
+    }
+  }
+}
+
+void printAdjacencyMatrix(
+    const std::vector<std::vector<std::pair<int, int>>>& adj, int totalNodes) {
+  std::vector<std::vector<int>> matrix(totalNodes,
+                                       std::vector<int>(totalNodes, 0));
+
+  // Fill matrix from adjacency list
+  for (int u = 0; u < totalNodes; ++u) {
+    for (const auto& [v, weight] : adj[u]) {
+      matrix[u][v] = weight;
+      // For undirected graphs, this is symmetric:
+      matrix[v][u] = weight;
+    }
+  }
+
+  // Print header
+  std::cout << "   ";
+  for (int j = 0; j < totalNodes; ++j) std::cout << std::setw(3) << j;
+  std::cout << "\n";
+
+  // Print each row
+  for (int i = 0; i < totalNodes; ++i) {
+    std::cout << std::setw(3) << i << " ";
+    for (int j = 0; j < totalNodes; ++j) {
+      std::cout << std::setw(3) << matrix[i][j];
+    }
+    std::cout << "\n";
+  }
+}
+
+std::string displayNode(int nodeID) {
+  int row = nodeID / kBoardSize;
+  int col = nodeID % kBoardSize;
+
+  return "(" + std::to_string(row) + ", " + std::to_string(col) + ")";
+}
+
+std::vector<std::vector<std::pair<int, int>>> subtractAdjacencyLists(
+    const std::vector<std::vector<std::pair<int, int>>>& adj1,
+    const std::vector<std::vector<std::pair<int, int>>>& adj2) {
+  int n = adj1.size();
+  std::vector<std::vector<std::pair<int, int>>> result(n);
+
+  for (int u = 0; u < n; ++u) {
+    // Build lookup map for adj2[u]
+    std::unordered_map<int, int> adj2_map;
+    for (const auto& [v, w2] : adj2[u]) {
+      adj2_map[v] = w2;
+    }
+
+    for (const auto& [v, w1] : adj1[u]) {
+      // Prevent duplicate undirected edges: only add u → v if u < v
+      if (u < v) {
+        int w2 = adj2_map.count(v) ? adj2_map[v] : 0;
+        int w_diff = w1 - w2;
+
+        // Optional: skip zero-weight results
+        result[u].emplace_back(v, std::max(w_diff, 0));
+        result[v].emplace_back(
+            u, std::max(w_diff, 0));  // Undirected graph symmetry
+      }
+    }
+  }
+
+  return result;
+}
+
+std::vector<float> Gamestate::resiliency_vector() {
+  std::vector<float> result;
+
+  int totalNodes = kBoardSize * kBoardSize;
+
+  std::vector<std::vector<std::pair<int, int>>> adj1(totalNodes);
+  std::vector<std::vector<std::pair<int, int>>> adj2(totalNodes);
+
+  for (int r = 0; r < kBoardSize; ++r) {
+    for (int c = 0; c < kBoardSize; ++c) {
+      int u = r * kBoardSize + c;
+
+      // Row = player pos first
+      // Col = player pos second
+
+      auto loc = std::make_pair(r, c);
+
+      // Up
+      if (r > 0 && !containsFenceInDirection(loc, -1, 0)) {
+        int v = (r - 1) * kBoardSize + c;
+        adj1[u].push_back({v, 1});
+        adj1[v].push_back({u, 1});
+
+        adj2[u].push_back({v, 1});
+        adj2[v].push_back({u, 1});
+      }
+      // Right
+      if (c < kBoardSize - 1 && !containsFenceInDirection(loc, 0, 1)) {
+        int v = r * kBoardSize + (c + 1);
+        adj1[u].push_back({v, 1});
+        adj1[v].push_back({u, 1});
+
+        adj2[u].push_back({v, 1});
+        adj2[v].push_back({u, 1});
+      }
+      // Every edge is up or right of something
+    }
+  }
+
+  int p2_weights_added = 0;
+  for (int i = 0; i < kPathResilienceIters; i++) {
+    auto [shortestDistance, pathEdges] = dijkstraRowWithPathIDs(
+        adj2, kBoardSize, p2Pos.first, p2Pos.second, true);
+
+    for (auto e : pathEdges) {
+      addEdgeWeight(adj2, e.first, e.second, kPathResilienceWeight);
+      p2_weights_added += kPathResilienceWeight;
+    }
+  }
+
+  auto [p2FinalShortestDistance, pathEdges] =
+      dijkstraRowWithPathIDs(adj2, kBoardSize, p2Pos.first, p2Pos.second, true);
+
+  int p1_weights_added = 0;
+  for (int i = 0; i < kPathResilienceIters; i++) {
+    auto [shortestDistance, pathEdges] = dijkstraRowWithPathIDs(
+        adj1, kBoardSize, p1Pos.first, p1Pos.second, false);
+
+    for (auto e : pathEdges) {
+      addEdgeWeight(adj1, e.first, e.second, kPathResilienceWeight);
+      p1_weights_added += kPathResilienceWeight;
+    }
+  }
+
+  auto [p1FinalShortestDistance, ed] = dijkstraRowWithPathIDs(
+      adj1, kBoardSize, p1Pos.first, p1Pos.second, false);
+
+  float p1_raw_resiliency =
+      ((float)p1FinalShortestDistance) / kPathResilienceIters;
+  float p1_scaled_resiliency =
+      ((float)p1FinalShortestDistance) / p1_weights_added;
+
+  float p2_raw_resiliency =
+      ((float)p2FinalShortestDistance) / kPathResilienceIters;
+  float p2_scaled_resiliency =
+      ((float)p2FinalShortestDistance) / p2_weights_added;
+
+  auto adj_p1liability = subtractAdjacencyLists(adj1, adj2);
+  auto adj_p2liability = subtractAdjacencyLists(adj2, adj1);
+
+  auto [p1LiabilityDistance, ed1] = dijkstraRowWithPathIDs(
+      adj_p1liability, kBoardSize, p1Pos.first, p1Pos.second, false);
+
+  auto [p2LiabilityDistance, ed2] = dijkstraRowWithPathIDs(
+      adj_p2liability, kBoardSize, p2Pos.first, p2Pos.second, true);
+
+  float p1_max_liability = 0;
+  for (int u = 0; u < totalNodes; ++u) {
+    for (const auto& [v, weight] : adj_p1liability[u]) {
+      p1_max_liability = std::max(p1_max_liability, (float)weight);
+    }
+  }
+
+  float p2_max_liability = 0;
+  for (int u = 0; u < totalNodes; ++u) {
+    for (const auto& [v, weight] : adj_p2liability[u]) {
+      p2_max_liability = std::max(p2_max_liability, (float)weight);
+    }
+  }
+
+  if (p1Turn) {
+    return {p1_raw_resiliency,    p1_scaled_resiliency, p2_raw_resiliency,
+            p2_scaled_resiliency, p1LiabilityDistance,  p2LiabilityDistance,
+            p1_max_liability,     p2_max_liability};
+  }
+
+  return {p2_raw_resiliency,    p2_scaled_resiliency, p1_raw_resiliency,
+          p1_scaled_resiliency, p2LiabilityDistance,  p1LiabilityDistance,
+          p2_max_liability,     p1_max_liability};
+}
+
 float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
 #ifdef TORCH
   using namespace torch::indexing;
@@ -277,19 +536,20 @@ Gamestate::Gamestate() {
   // p1Fences = 0;
   // p2Fences = 1;
 
-  // // Second Sample
+  // Second Sample
 
-  // p1Turn = true;
-  // p1Pos.first = 0;
-  // p1Pos.second = 1;
+  p1Turn = true;
+  p1Pos.first = 0;
+  p1Pos.second = 1;
 
-  // p2Pos.first = 3;
-  // p2Pos.second = 2;
+  p2Pos.first = 3;
+  p2Pos.second = 2;
 
-  // hFences[0][1] = true;
-  // hFences[1][3] = true;
-  // hFences[2][2] = true;
-  // hFences[3][3] = true;
+  hFences[0][1] = true;
+  hFences[1][3] = true;
+  hFences[2][2] = true;
+  hFences[3][3] = true;
+  vFences[0][3] = true;
   // hFences[3][1] = true;
   // vFences[0][3] = true;
   // vFences[3][2] = true;
@@ -764,7 +1024,8 @@ std::vector<Move> Gamestate::getFenceMoves() {
     for (int col = 0; col < kBoardSize - 1; col++) {
       // Check horizontal fence placement
       if (!hFences[row][col]) {
-        // Boundary check for horizontal fence (ensure it fits within the board)
+        // Boundary check for horizontal fence (ensure it fits within the
+        // board)
 
         bool isValid = true;
 

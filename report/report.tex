@@ -150,10 +150,10 @@ Due to the discrete and uniform nature of these edge weight modifications, the n
 There are several features we create for our neural network using this process. Each feature is calculated twice: once from each player's perspective.
 
 \begin{enumerate}
-    \item \textbf{Raw resiliency distance.} This scalar encodes the information of Fig.~\ref{fig:resiliency}B. It is the percentage of the total weight that is included in the shortest path from the player to the goal after all of the iterations are complete.
-    \item \textbf{Scaled resiliency distance.} This scalar is similar to (1), but it does not depend on the amount of total weight added during the iterative phase. It is calculated as the total weight along the shortest path to the goal divided by the number of iterations.
-    \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (1).
-    \item \textbf{Scaled targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
+    \item \textbf{Scaled resiliency distance.} This scalar encodes the information of Fig.~\ref{fig:resiliency}B. It is the percentage of the total weight that is included in the shortest path from the player to the goal after all of the iterations are complete.
+    \item \textbf{Raw resiliency distance.} This scalar is similar to (1), but it does not depend on the amount of total weight added during the iterative phase. It is calculated as the total weight along the shortest path to the goal divided by the number of iterations.
+    \item \textbf{Scaled targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (1).
+    \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
 \end{enumerate}
 
@@ -172,7 +172,7 @@ As noted earlier, the strength of an MCTS system is entirely dependent on the st
 
 The first principle verifies that an MCTS system is working as expected, while the second principle gives us a method of comparison between different systems.
 
-\subsection{Experiment 1: Increasing Iterations Improves Performance}
+\subsection{Principle 1: Increasing Iterations Improves Performance}
 
 To verify that increasing the number of iterations increased the performance of our models, we created a methodology to determine the relative playing strength between two models. A first thought would be to play the model against itself; however such a method would only test the model against positions that it itself selects rather than the full breadth of positions that it could encounter. Instead, we conduct many test games and begin each test game with a seqeuence of randomly selected moves. While this process does ensure the model is forced to play from a variety of unique positions, it presents a certain unfairness. Some positions are clearly lost, and are easily converted to wins by the opponent. We avoid this issue by looking at the ratio of wins to losses and draws. Stronger models will be able to find more subtle paths to victory, and will thus achieve a higher win to loss ratio against weaker models when starting from random positions.
 
