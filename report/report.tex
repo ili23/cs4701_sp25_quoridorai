@@ -46,7 +46,9 @@ Quoridor is a deterministic, two player game with perfect information. Each play
 
 \section{Project Description}
 
-We sought to make an AI agent that was capable of playing Quoridor. Initially, we intended to focus on a primarily convolutional neural network-based approach and evaluate it against an agent that played using random roll-outs. As we progressed, we found that using random roll-outs presented significant challenges, eventually abandoning their use altogether. We also found that the convolutional neural network was under-performing. We investigated deeper into the mechanics of the game, and outsourced some complex pathfinding logic to features before the network. Our second network had fewer parameters, but performed better due to the computations encoded in its input features.
+We sought to make an AI agent that was capable of playing Quoridor. Initially, we intended to focus on a primarily convolutional neural network-based approach and evaluate it against an agent that played using random roll-outs. As we progressed, we found that using random roll-outs presented significant challenges, eventually abandoning their use altogether. We implemented our preliminary attempts in python, but the language's high overhead forced us to complete our final implementations in C++. This reimplementation proved to be unexpecedtly difficult, costing us considerable time debugging the many edge cases surrounding pawn moves.
+
+After our networks were complete, we found that the convolutional neural network was under-performing. We investigated deeper into the mechanics of the game, and outsourced some complex pathfinding logic to features before the network. Our second network had fewer parameters, but performed better due to the computations encoded in its input features.
 
 \subsection{Rules of Quoridor}
 
@@ -161,7 +163,7 @@ There are several features we create for our neural network using this process. 
 
 \subsection{Principles of Evaluation}
 
-As noted earlier, the strength of a MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance our of system by checking for two principles:
+As noted earlier, the strength of an MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance of our system by checking for two principles:
 
 \begin{enumerate}
     \item As the number of iterations is increased for a given system, the playing strength should increase.
@@ -170,9 +172,20 @@ As noted earlier, the strength of a MCTS system is entirely dependent on the str
 
 The first principle verifies that an MCTS system is working as expected, while the second principle gives us a method of comparison between different systems.
 
-\subsection{Principle 1: Increasing Iterations Improves Performance}
+\subsection{Experiment 1: Increasing Iterations Improves Performance}
 
 To verify that increasing the number of iterations increased the performance of our models, we created a methodology to determine the relative playing strength between two models. A first thought would be to play the model against itself; however such a method would only test the model against positions that it itself selects rather than the full breadth of positions that it could encounter. Instead, we conduct many test games and begin each test game with a seqeuence of randomly selected moves. While this process does ensure the model is forced to play from a variety of unique positions, it presents a certain unfairness. Some positions are clearly lost, and are easily converted to wins by the opponent. We avoid this issue by looking at the ratio of wins to losses and draws. Stronger models will be able to find more subtle paths to victory, and will thus achieve a higher win to loss ratio against weaker models when starting from random positions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{win_rates.png}
+    \caption{\textbf{Self play.} All models play as player 1 against the naive MCTS model as player 2. The number of MCTS iterations for the model in question (player 1) varies. The number of iterations for the naive opponent (player 2) is constant ($= 1000$). Every game is started with 8 random moves (4 for each side). Random moves are drawn uniformly from the set of all legal moves.}
+    \label{fig:selfplay}
+\end{figure}
+
+When playing the naive model against itself, our tests indicate that the performance increases as the number of iterations increases as expected (Fig.~\ref{fig:selfplay}A). Interestingly, when the number of iterations for both players are equal at 1000, player 2 wins. This potentially indicates that the game mechanics or the use of random moves biases towards player 2. Nevertheless, principle 1 is supported in this test.
+
+When playing the basic model against the naive model, there is a similar upward trend (Fig.~\ref{fig:selfplay}B). The model also reaches a similiar peak performance, the point at which increasing the iterations does not provide performance enhancements. Although, the basic model reaches this peak performance at a lower number of iterations, supporting the theory that its evaluation function is more accurate. 
 
 \subsection{Principle 2: Better Evaluations Functions Require Fewer Iterations}
 

@@ -293,4 +293,4 @@ render(ax10, "(C) P2 resillience weights", graph_path2, (2,))
 render(ax11, "(D) Target edges", final_graph, (1, 2))
 
 plt.tight_layout()
-plt.savefig("path_figure.png", dpi=400)
+plt.savefig("../report/path_figure.png", dpi=400)

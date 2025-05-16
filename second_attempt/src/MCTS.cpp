@@ -19,9 +19,9 @@ MCTS::MCTS() {
 
 void MCTS::startNewSearch(Gamestate& g) { root = std::make_unique<Node>(g); }
 
-void MCTS::iterate(int n) {
+void MCTS::iterate(int n, bool smart_eval) {
   for (int i = 0; i < n; i++) {
-    singleIterate();
+    singleIterate(smart_eval);
   }
 }
 
@@ -117,7 +117,7 @@ Gamestate MCTS::bestMoveApply() {
   return move_scores.back().first;
 }
 
-void MCTS::singleIterate() {
+void MCTS::singleIterate(bool smart_eval) {
   // Step 1: Selection
 
   std::shared_ptr<Node> selection = root;
@@ -155,7 +155,7 @@ void MCTS::singleIterate() {
   // std::cout << "expansion done." << std::endl;
 
   // Step 3: Simulation
-  float score = Gamestate::model_evaluate(selection->state);
+  float score = Gamestate::model_evaluate(selection->state, smart_eval);
   if (selection->state.p1Turn) {
     score = -1 * score;
   }

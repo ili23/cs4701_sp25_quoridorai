@@ -17,48 +17,46 @@ int main(int argc, const char* argv[]) {
   // gs.displayBoard();
 
   // std::ofstream data_evals, move_evals;
-  // data_evals.open("MCTS_data_evals2.csv");
-  // move_evals.open("MCTS_data2.csv");
+  // data_evals.open("naive_vs_naive.csv");
+  // move_evals.open("MCTS_data.csv");
 
   // MCTS tree;
 
   // tree.startNewSearch(gs);
 
-  // for(int i = 0; i < 10000; i++) {
+  // for (int i = 0; i < 10000; i++) {
   //   tree.iterate(1);
-  //   data_evals << i << ", " << tree.root->w << ", " << tree.root->n << std::endl;
+  //   data_evals << i << ", " << tree.root->w << ", " << tree.root->n
+  //              << std::endl;
 
-  //   if(i == 199 || i == 9999) {
+  //   if (i == 199 || i == 9999) {
   //     int c_idx = 0;
-  //     for(auto c : tree.root->children) {
-  //       move_evals << c_idx << ", " << i + 1 << ", " << c->w << ", " << c->n << std::endl;
+  //     for (auto c : tree.root->children) {
+  //       move_evals << c_idx << ", " << i + 1 << ", " << c->w << ", " << c->n
+  //                  << std::endl;
   //       c_idx++;
   //     }
   //   }
   // }
 
+  // tree.iterate(200);
+  // int i = 0;
+  //
 
-  // // tree.iterate(200);
-  // // int i = 0;
-  // // 
-
-  // // tree.iterate(10000 - 200);
-  // // i = 0;
-  // // for(auto c : tree.root->children) {
-  // //   myfile << i << ", " << 10000 << ", " << c->w << ", " << c->n << std::endl;
-  // //   i++;
-  // // }
-
-
+  // tree.iterate(10000 - 200);
+  // i = 0;
+  // for(auto c : tree.root->children) {
+  //   myfile << i << ", " << 10000 << ", " << c->w << ", " << c->n <<
+  //   std::endl; i++;
+  // }
   // return 0;
-  
+
 #ifdef TORCH
   if (argc != 2) {
     std::cerr << "usage: example-app <path-to-exported-script-module>\n";
     return -1;
   }
 #endif
-#define GEN_TRAINING_DATA
 
 #ifdef GEN_TRAINING_DATA
   int i = 0;
@@ -138,7 +136,7 @@ int main(int argc, const char* argv[]) {
           gs = tree.bestMoveApply();
         }
       }
-      
+
       std::cout << "Move: " << moves_made << std::endl;
 
       std::cout << "W " << tree.root->w << " N " << tree.root->n << std::endl;
@@ -184,8 +182,9 @@ int main(int argc, const char* argv[]) {
 
       // Write column headers only if file is new
       if (!file_exists) {
-        myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
-                  "move_count,current_player,";
+        myfile
+            << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
+               "move_count,current_player,";
 
         // Horizontal wall headers
         for (int i = 0; i < kBoardSize - 1; i++) {
@@ -244,7 +243,7 @@ int main(int argc, const char* argv[]) {
       if (moves_made < kRandomMovesCount) {
         gs = tree.randomMoveApply();
       } else {
-        tree.iterate(gs.p1Turn ? p1MCTSiters : p2MCTSiters);
+        tree.iterate(gs.p1Turn ? p1MCTSiters : p2MCTSiters, true);
 
         gs = tree.bestMoveApply();
       }
@@ -254,7 +253,7 @@ int main(int argc, const char* argv[]) {
       // std::cout << "W " << tree.root->w << " N " << tree.root->n <<
       // std::endl;
 
-      gs.displayBoard();
+      // gs.displayBoard();
       moves_made++;
     }
 

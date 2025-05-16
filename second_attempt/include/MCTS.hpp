@@ -9,7 +9,7 @@ class MCTS {
 
   void startNewSearch(Gamestate &g);
 
-  void iterate(int n);
+  void iterate(int n, bool);
 
   Gamestate applyMove(int);
 
@@ -24,5 +24,5 @@ class MCTS {
  private:
   void backpropagate(std::shared_ptr<Node> finalNode, float result);
 
-  void singleIterate();
+  void singleIterate(bool);
 };

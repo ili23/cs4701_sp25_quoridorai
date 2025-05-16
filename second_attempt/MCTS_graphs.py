@@ -404,4 +404,4 @@ axs[1, 2].set_ylabel("Strength", labelpad=-3)
 plt.tight_layout()
 
 plt.show()
-# plt.savefig("MCTS_eval.png")
+# plt.savefig("../report/MCTS_eval.png")
