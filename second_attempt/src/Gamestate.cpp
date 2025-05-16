@@ -544,19 +544,19 @@ Gamestate::Gamestate() {
   p1Turn = true;
 
   // First Sample - histogram tactic
-  hFences[1][1] = true;
-  hFences[0][3] = true;
-  vFences[2][0] = true;
+  // hFences[1][1] = true;
+  // hFences[0][3] = true;
+  // vFences[2][0] = true;
 
-  p1Pos.first = 2;
-  p1Pos.second = 0;
-  p2Pos.first = 2;
-  p2Pos.second = 4;
+  // p1Pos.first = 2;
+  // p1Pos.second = 0;
+  // p2Pos.first = 2;
+  // p2Pos.second = 4;
 
-  p1Turn = false;
+  // p1Turn = false;
 
-  p1Fences = 0;
-  p2Fences = 1;
+  // p1Fences = 0;
+  // p2Fences = 1;
 
   // Second Sample
 
@@ -575,6 +575,23 @@ Gamestate::Gamestate() {
   // hFences[3][1] = true;
   // vFences[0][3] = true;
   // vFences[3][2] = true;
+
+  // Third sample, advanced tatic
+
+  // p1Pos.first = 2;
+  // p1Pos.second = 0;
+  // p2Pos.first = 3;
+  // p2Pos.second = 4;
+  // p1Turn = true;
+
+  // hFences[1][2] = true;
+  // hFences[3][2] = true;
+
+  // vFences[2][1] = true;
+  // vFences[2][3] = true;
+
+  // p1Fences = 1;
+  // p2Fences = 1;
 }
 
 void Gamestate::displayBoard() {

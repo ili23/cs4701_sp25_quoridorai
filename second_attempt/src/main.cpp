@@ -119,6 +119,8 @@ int main(int argc, const char* argv[]) {
   Gamestate gs;
   gs.displayBoard();
 
+  // return 0;
+
   std::ofstream data_evals, move_evals;
   data_evals.open("f_forest_eval_over_time.csv");
   move_evals.open("e_forest_move_distr.csv");
@@ -126,13 +128,13 @@ int main(int argc, const char* argv[]) {
   MCTS tree;
 
   tree.startNewSearch(gs);
-  tree.iterate(200, true);
+  // tree.iterate(200, true);
 
-  std::cout << "w " << tree.root->w << " n " << tree.root->n << std::endl;
+  // std::cout << "w " << tree.root->w << " n " << tree.root->n << std::endl;
 
-  tree.root->displayChildren();
+  // tree.root->displayChildren();
 
-  return 0;
+  // return 0;
 
   for (int i = 0; i < 5000; i++) {
     tree.iterate(1, true);
@@ -357,12 +359,13 @@ int main(int argc, const char* argv[]) {
         gs = tree.bestMoveApply();
       }
 
-      // std::cout << "Move: " << moves_made << std::endl;
+      std::cout << "Making the best move" << std::endl;
 
-      // std::cout << "W " << tree.root->w << " N " << tree.root->n <<
-      // std::endl;
+      std::cout << "Move: " << moves_made << std::endl;
 
-      // gs.displayBoard();
+      std::cout << "W " << tree.root->w << " N " << tree.root->n << std::endl;
+
+      gs.displayBoard();
       moves_made++;
     }
 
