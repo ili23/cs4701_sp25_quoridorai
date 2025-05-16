@@ -15,7 +15,7 @@ class Node : public std::enable_shared_from_this<Node> {
 
   float w, n;
 
-  std::shared_ptr<Node> parent;
+  std::weak_ptr<Node> parent;
 
   bool leaf() { return !childrenExpanded || terminal; };
 

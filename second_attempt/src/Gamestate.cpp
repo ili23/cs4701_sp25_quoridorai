@@ -181,8 +181,6 @@ void Gamestate::write_csv(std::ofstream& f, int winning_player) {
   f << "," << outcome << std::endl;
 }
 
-using Edge = std::pair<int, int>;  // (fromNodeID, toNodeID)
-
 // Returns shortest distance and path as list of edges using node IDs
 std::pair<float, std::vector<Edge>> dijkstraRowWithPathIDs(
     const std::vector<std::vector<std::pair<int, int>>>& adj, int kBoardSize,
@@ -327,7 +325,7 @@ std::vector<std::vector<std::pair<int, int>>> subtractAdjacencyLists(
 }
 
 double tree_eval(std::vector<double> features) {
-  double features_mapped[8];
+  double features_mapped[kResilienceFeatureLength];
 
   for (int x = 0; x < kResilienceFeatureLength; x++) {
     if (std::isnan(features[0])) {
@@ -343,10 +341,48 @@ double tree_eval(std::vector<double> features) {
   return -1 * prediction[0] + 1 * prediction[2];
 }
 
+void block(int x1, int y1, int x2, int y2,
+           std::vector<std::vector<bool>>& blocked) {
+  int start, end;
+  start = (x1)*kBoardSize + y1;
+  end = (x2)*kBoardSize + y2;
+
+  if (0 <= x1 && x1 < kBoardSize && 0 <= y1 && y1 < kBoardSize && 0 <= x2 &&
+      x2 < kBoardSize && 0 <= y2 && y2 < kBoardSize) {
+    blocked[start][end] = true;
+    blocked[end][start] = true;
+  }
+}
+
+std::vector<std::vector<bool>> Gamestate::removableEdges() {
+  std::vector<Move> fenceMoves = getFenceMoves();
+  std::vector<std::vector<bool>> result(
+      (kBoardSize * kBoardSize),
+      std::vector<bool>(kBoardSize * kBoardSize, false));
+
+  for (Move m : fenceMoves) {
+    if (m.hFence) {
+      // H fences at (x, y) blocks (x,y) to (x+1, y) and (x,y+1) to (x+1, y+1)
+      block(m.pos.first, m.pos.second, m.pos.first + 1, m.pos.second, result);
+      block(m.pos.first, m.pos.second + 1, m.pos.first + 1, m.pos.second + 1,
+            result);
+    } else {
+      // V fences at (x, y) blocks (x,y) to (x, y+1) and (x+1,y) to (x+1, y+1)
+      block(m.pos.first, m.pos.second, m.pos.first, m.pos.second + 1, result);
+      block(m.pos.first + 1, m.pos.second, m.pos.first + 1, m.pos.second + 1,
+            result);
+    }
+  }
+
+  return result;
+};
+
 std::vector<double> Gamestate::resiliency_vector() {
   std::vector<double> result;
 
   int totalNodes = kBoardSize * kBoardSize;
+
+  std::vector<std::vector<bool>> targetableEdges = removableEdges();
 
   std::vector<std::vector<std::pair<int, int>>> adj1(totalNodes);
   std::vector<std::vector<std::pair<int, int>>> adj2(totalNodes);
@@ -355,8 +391,8 @@ std::vector<double> Gamestate::resiliency_vector() {
     for (int c = 0; c < kBoardSize; ++c) {
       int u = r * kBoardSize + c;
 
-      // Row = player pos first
-      // Col = player pos second
+      // Row = player pos first = x
+      // Col = player pos second = y
 
       auto loc = std::make_pair(r, c);
 
@@ -383,13 +419,20 @@ std::vector<double> Gamestate::resiliency_vector() {
   }
 
   int p2_weights_added = 0;
+  int p2_original_shortest_path = 0;
   for (int i = 0; i < kPathResilienceIters; i++) {
     auto [shortestDistance, pathEdges] = dijkstraRowWithPathIDs(
         adj2, kBoardSize, p2Pos.first, p2Pos.second, true);
 
+    if (p2_weights_added == 0) {
+      p2_original_shortest_path = shortestDistance;
+    }
+
     for (auto e : pathEdges) {
-      addEdgeWeight(adj2, e.first, e.second, kPathResilienceWeight);
-      p2_weights_added += kPathResilienceWeight;
+      if (targetableEdges[e.first][e.second]) {
+        addEdgeWeight(adj2, e.first, e.second, kPathResilienceWeight);
+        p2_weights_added += kPathResilienceWeight;
+      }
     }
   }
 
@@ -397,13 +440,19 @@ std::vector<double> Gamestate::resiliency_vector() {
       dijkstraRowWithPathIDs(adj2, kBoardSize, p2Pos.first, p2Pos.second, true);
 
   int p1_weights_added = 0;
+  int p1_original_shortest_path = 0;
+
   for (int i = 0; i < kPathResilienceIters; i++) {
     auto [shortestDistance, pathEdges] = dijkstraRowWithPathIDs(
         adj1, kBoardSize, p1Pos.first, p1Pos.second, false);
-
+    if (p1_weights_added == 0) {
+      p1_original_shortest_path = shortestDistance;
+    }
     for (auto e : pathEdges) {
-      addEdgeWeight(adj1, e.first, e.second, kPathResilienceWeight);
-      p1_weights_added += kPathResilienceWeight;
+      if (targetableEdges[e.first][e.second]) {
+        addEdgeWeight(adj1, e.first, e.second, kPathResilienceWeight);
+        p1_weights_added += kPathResilienceWeight;
+      }
     }
   }
 
@@ -412,13 +461,13 @@ std::vector<double> Gamestate::resiliency_vector() {
 
   double p1_raw_resiliency =
       ((double)p1FinalShortestDistance) / kPathResilienceIters;
-  double p1_scaled_resiliency =
-      ((double)p1FinalShortestDistance) / p1_weights_added;
+  // double p1_scaled_resiliency =
+  // ((double)p1FinalShortestDistance) / p1_weights_added;
 
   double p2_raw_resiliency =
       ((double)p2FinalShortestDistance) / kPathResilienceIters;
-  double p2_scaled_resiliency =
-      ((double)p2FinalShortestDistance) / p2_weights_added;
+  // double p2_scaled_resiliency =
+  // ((double)p2FinalShortestDistance) / p2_weights_added;
 
   auto adj_p1liability = subtractAdjacencyLists(adj1, adj2);
   auto adj_p2liability = subtractAdjacencyLists(adj2, adj1);
@@ -444,14 +493,28 @@ std::vector<double> Gamestate::resiliency_vector() {
   }
 
   if (p1Turn) {
-    return {p1_raw_resiliency,    p1_scaled_resiliency, p2_raw_resiliency,
-            p2_scaled_resiliency, p1LiabilityDistance,  p2LiabilityDistance,
-            p1_max_liability,     p2_max_liability};
+    return {(double)p1_original_shortest_path,
+            (double)p2_original_shortest_path,
+            p1_raw_resiliency,
+            (double)p1Fences,
+            p2_raw_resiliency,
+            (double)p2Fences,
+            p1LiabilityDistance,
+            p2LiabilityDistance,
+            p1_max_liability,
+            p2_max_liability};
   }
 
-  return {p2_raw_resiliency,    p2_scaled_resiliency, p1_raw_resiliency,
-          p1_scaled_resiliency, p2LiabilityDistance,  p1LiabilityDistance,
-          p2_max_liability,     p1_max_liability};
+  return {(double)p2_original_shortest_path,
+          (double)p1_original_shortest_path,
+          p2_raw_resiliency,
+          (double)p2Fences,
+          p1_raw_resiliency,
+          (double)p1Fences,
+          p2LiabilityDistance,
+          p1LiabilityDistance,
+          p2_max_liability,
+          p1_max_liability};
 }
 
 float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
@@ -467,7 +530,7 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
     return 0;
   }
 
-  return tree_eval(g.resiliency_vector());
+  return -tree_eval(g.resiliency_vector());
 
 #ifdef TORCH
   // Use game_state_to_tensors to get all necessary tensors
@@ -578,20 +641,20 @@ Gamestate::Gamestate() {
 
   // Third sample, advanced tatic
 
-  // p1Pos.first = 2;
-  // p1Pos.second = 0;
-  // p2Pos.first = 3;
-  // p2Pos.second = 4;
-  // p1Turn = true;
+  p1Pos.first = 2;
+  p1Pos.second = 0;
+  p2Pos.first = 3;
+  p2Pos.second = 4;
+  p1Turn = true;
 
-  // hFences[1][2] = true;
-  // hFences[3][2] = true;
+  hFences[1][2] = true;
+  hFences[3][2] = true;
 
-  // vFences[2][1] = true;
-  // vFences[2][3] = true;
+  vFences[2][1] = true;
+  vFences[2][3] = true;
 
-  // p1Fences = 1;
-  // p2Fences = 1;
+  p1Fences = 1;
+  p2Fences = 1;
 }
 
 void Gamestate::displayBoard() {

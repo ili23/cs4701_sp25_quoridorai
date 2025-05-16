@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr int kSearchIterations = 10000;
+constexpr int kSearchIterations = 1000;
 
 constexpr int kBoardSize = 5;
 
@@ -22,4 +22,4 @@ constexpr int kMaxFileSize = 20000;
 
 constexpr int kPathResilienceIters = 25;
 constexpr int kPathResilienceWeight = 2;
-constexpr int kResilienceFeatureLength = 8;
+constexpr int kResilienceFeatureLength = 10;

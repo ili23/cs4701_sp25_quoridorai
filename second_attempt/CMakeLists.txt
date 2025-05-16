@@ -4,6 +4,15 @@ project(MCTS_cpp)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(USE_ASAN "Enable AddressSanitizer" OFF)
+
+if (USE_ASAN)
+    message(STATUS "Building with AddressSanitizer")
+    set(ASAN_FLAGS "-fsanitize=address -fno-omit-frame-pointer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ASAN_FLAGS}")
+    set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} ${ASAN_FLAGS}")
+endif()
+
 option(USE_TORCH "Enable Torch support" OFF)
 
 # Conditionally set CMAKE_PREFIX_PATH and find_package

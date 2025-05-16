@@ -128,6 +128,12 @@ int main(int argc, const char* argv[]) {
   MCTS tree;
 
   tree.startNewSearch(gs);
+
+  std::cout << " RES VECTOR" << std::endl;
+  for (double val : gs.resiliency_vector()) {
+    std::cout << val << " ";
+  }
+  std::cout << std::endl;
   // tree.iterate(200, true);
 
   // std::cout << "w " << tree.root->w << " n " << tree.root->n << std::endl;
@@ -150,6 +156,7 @@ int main(int argc, const char* argv[]) {
       }
     }
   }
+  // tree.root->displayChildren();
 
   // tree.iterate(200, true);
   // int i = 0;

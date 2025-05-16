@@ -12,6 +12,8 @@
 
 #include "Constants.hpp"
 
+using Edge = std::pair<int, int>;  // (fromNodeID, toNodeID)
+
 class Move {
  public:
   // Move the current pawn to the given position, (x, y)
@@ -106,9 +108,11 @@ class Gamestate {
   }
 
  private:
+  std::vector<std::vector<bool>> removableEdges();
 };
 
 // Hash function for Gamestate to allow it to be used as a key in unordered_map
+
 namespace std {
 template <>
 struct hash<Gamestate> {

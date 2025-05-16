@@ -14,7 +14,6 @@ Node::Node(Gamestate &g) {
   state = g;
   childrenExpanded = false;
   terminal = state.terminal();
-  parent = nullptr;
 }
 
 Node::Node(Gamestate &g, std::shared_ptr<Node> p) {
@@ -53,10 +52,11 @@ float Node::score() {
     std::cout << "Divide by zero!" << std::endl;
   }
 
-  if (parent == nullptr) {
+  if (auto sp = parent.lock()) {
+    return (w / n) + c * std::sqrt(std::log(sp->n) / n);
+  } else {
     return (w / n) + c * std::sqrt(std::log(n) / n);
   }
-  return (w / n) + c * std::sqrt(std::log(parent->n) / n);
 }
 
 std::shared_ptr<Node> Node::expand() {
@@ -84,7 +84,7 @@ void Node::backpropogate(float score) {
   w += score;
   n += 1;
 
-  if (parent != nullptr) {
-    parent->backpropogate(-1 * score);
+  if (auto sp = parent.lock()) {
+    sp->backpropogate(-1 * score);
   }
 }
