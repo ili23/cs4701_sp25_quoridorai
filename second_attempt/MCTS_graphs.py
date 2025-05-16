@@ -169,25 +169,33 @@ def render(
     ax.add_patch(rect)
 
     # Draw fences
-    def draw_fence(row, col, orientation, color="black", **kwargs):
+    def draw_fence(row, col, orientation, color="black", dotted=False, **kwargs):
         if orientation == "v":
             # Fence between (row, col) and (row, col+1)
             x = col
             y = row + 0.95
             rect = patches.Rectangle((x, y), 1, 0.1, color=color, zorder=10, **kwargs)
+
+            if dotted:
+                ax.plot((x, x + 2), (y, y), color=color, zorder=10, **kwargs)
         else:  # 'v'
             # Fence between (row, col) and (row+1, col)
             x = col + 0.95
             y = row
             rect = patches.Rectangle((x, y), 0.1, 1, color=color, zorder=10, **kwargs)
 
-        ax.add_patch(rect)
+            if dotted:
+                ax.plot((x, x), (y, y+2), color=color, zorder=10, **kwargs)
+
+        if not dotted:
+            ax.add_patch(rect)
+
 
     for row, col, orientation in fences:
         draw_fence(row, col, orientation)
 
     for row, col, orientation in dotted_fences:
-        draw_fence(row, col, orientation, color="tab:orange", alpha=0.4, linewidth=3)
+        draw_fence(row, col, orientation, color="tab:orange", alpha=1, linewidth=4, dotted=True, linestyle=(0, (2, 1)))
 
     # Draw labels
     # for col in range(board_size):
