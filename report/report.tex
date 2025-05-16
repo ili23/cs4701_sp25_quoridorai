@@ -182,6 +182,8 @@ We have the models evaluate a prearranged position (Fig.~\ref{fig:MCTS}A). This 
 
 We use the naive MCTS system as a baseline to compare other systems against. Its evaluation function provides no information about the board, only returning a nonzero value in terminal positions. When MCTS systems evalute with the naive evaluation function, there is an immediate and rapid drop (Fig.~\ref{fig:MCTS}C). This drop is an expected result when analyzing a position with a hidden tatic. With only a shallow search, it seems that the position is lost. It is only after the model has found the winning move and sufficiently explored to verify the expected outcome that the evaluation the increases. As expected, the calculated strength of the position continues to increase until the end of the experiment.
 
+
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{MCTS_eval.png}
@@ -189,6 +191,7 @@ We use the naive MCTS system as a baseline to compare other systems against. Its
     \label{fig:MCTS}
 \end{figure}
 
+The basic evaluation function provides an iterative improvement over the naive function. Comparing the strength calculated by the basic evaluation function to the strength calculated by the naive evaluation function reveals a similar yet improved pattern (Fig.~\ref{fig:MCTS}D). There is a rapid drop followed by a more gradual improvement as the model gains understanding of the position. However, this model approaces the correct evaluation more quickly, confirming the improved performance of the evaluation function. 
 
 % \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.
