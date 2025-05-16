@@ -14,8 +14,8 @@ constexpr int p2_start_first = kBoardSize - 1;
 constexpr int p2_start_second = kBoardSize / 2;
 
 constexpr int kRandomMovesCount = 4;
-constexpr int kGameCount = 1000;
+constexpr int kGameCount = 5000;
 
 constexpr bool kPlayerInput = false;
 
-constexpr int kMaxFileSize = 10000;
+constexpr int kMaxFileSize = 20000;

@@ -12,45 +12,45 @@
 #endif
 
 int main(int argc, const char* argv[]) {
+  // Generating histogram (from fixed positions)
+  // Gamestate gs;
+  // gs.displayBoard();
 
-  Gamestate gs;
-  gs.displayBoard();
+  // std::ofstream data_evals, move_evals;
+  // data_evals.open("MCTS_data_evals2.csv");
+  // move_evals.open("MCTS_data2.csv");
 
-  std::ofstream data_evals, move_evals;
-  data_evals.open("MCTS_data_evals2.csv");
-  move_evals.open("MCTS_data2.csv");
+  // MCTS tree;
 
-  MCTS tree;
+  // tree.startNewSearch(gs);
 
-  tree.startNewSearch(gs);
+  // for(int i = 0; i < 10000; i++) {
+  //   tree.iterate(1);
+  //   data_evals << i << ", " << tree.root->w << ", " << tree.root->n << std::endl;
 
-  for(int i = 0; i < 10000; i++) {
-    tree.iterate(1);
-    data_evals << i << ", " << tree.root->w << ", " << tree.root->n << std::endl;
-
-    if(i == 199 || i == 9999) {
-      int c_idx = 0;
-      for(auto c : tree.root->children) {
-        move_evals << c_idx << ", " << i + 1 << ", " << c->w << ", " << c->n << std::endl;
-        c_idx++;
-      }
-    }
-  }
-
-
-  // tree.iterate(200);
-  // int i = 0;
-  // 
-
-  // tree.iterate(10000 - 200);
-  // i = 0;
-  // for(auto c : tree.root->children) {
-  //   myfile << i << ", " << 10000 << ", " << c->w << ", " << c->n << std::endl;
-  //   i++;
+  //   if(i == 199 || i == 9999) {
+  //     int c_idx = 0;
+  //     for(auto c : tree.root->children) {
+  //       move_evals << c_idx << ", " << i + 1 << ", " << c->w << ", " << c->n << std::endl;
+  //       c_idx++;
+  //     }
+  //   }
   // }
 
 
-  return 0;
+  // // tree.iterate(200);
+  // // int i = 0;
+  // // 
+
+  // // tree.iterate(10000 - 200);
+  // // i = 0;
+  // // for(auto c : tree.root->children) {
+  // //   myfile << i << ", " << 10000 << ", " << c->w << ", " << c->n << std::endl;
+  // //   i++;
+  // // }
+
+
+  // return 0;
   
 #ifdef TORCH
   if (argc != 2) {
@@ -58,7 +58,7 @@ int main(int argc, const char* argv[]) {
     return -1;
   }
 #endif
-// #define GEN_TRAINING_DATA
+#define GEN_TRAINING_DATA
 
 #ifdef GEN_TRAINING_DATA
   int i = 0;
@@ -68,24 +68,27 @@ int main(int argc, const char* argv[]) {
 
   std::ofstream myfile;
   std::string path = "data/gamestate" + std::to_string(file_num) + ".csv";
-  myfile.open(path);
+  bool file_exists = std::filesystem::exists(path);
+  myfile.open(path, std::ios::app);  // Open in append mode
 
-  // Write column headers
-  myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
-            "move_count,current_player,";
-  // Horizontal wall headers
-  for (int i = 0; i < kBoardSize - 1; i++) {
-    myfile << "h_wall_col" << i;
-    myfile << ",";
+  // Write column headers only if file is new
+  if (!file_exists) {
+    myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
+              "move_count,current_player,";
+    // Horizontal wall headers
+    for (int i = 0; i < kBoardSize - 1; i++) {
+      myfile << "h_wall_col" << i;
+      myfile << ",";
+    }
+
+    // Vertical wall headers
+    for (int i = 0; i < kBoardSize - 1; i++) {
+      myfile << "v_wall_col" << i;
+      myfile << ",";
+    }
+
+    myfile << "outcome" << std::endl;
   }
-
-  // Vertical wall headers
-  for (int i = 0; i < kBoardSize - 1; i++) {
-    myfile << "v_wall_col" << i;
-    myfile << ",";
-  }
-
-  myfile << "outcome" << std::endl;
 
   while (i < kGameCount) {
     MCTS tree;
@@ -176,24 +179,27 @@ int main(int argc, const char* argv[]) {
       file_num++;
       lines_written = 0;
       path = "data/gamestate" + std::to_string(file_num) + ".csv";
-      myfile.open(path);
+      bool file_exists = std::filesystem::exists(path);
+      myfile.open(path, std::ios::app);
 
-      // Write column headers
-      myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
-                "move_count,current_player,";
+      // Write column headers only if file is new
+      if (!file_exists) {
+        myfile << "player0_pawn,player1_pawn,num_walls_player0,num_walls_player1,"
+                  "move_count,current_player,";
 
-      // Horizontal wall headers
-      for (int i = 0; i < kBoardSize - 1; i++) {
-        myfile << "h_wall_col" << i;
-        myfile << ",";
+        // Horizontal wall headers
+        for (int i = 0; i < kBoardSize - 1; i++) {
+          myfile << "h_wall_col" << i;
+          myfile << ",";
+        }
+
+        // Vertical wall headers
+        for (int i = 0; i < kBoardSize - 1; i++) {
+          myfile << "v_wall_col" << i;
+          myfile << ",";
+        }
+        myfile << "outcome" << std::endl;
       }
-
-      // Vertical wall headers
-      for (int i = 0; i < kBoardSize - 1; i++) {
-        myfile << "v_wall_col" << i;
-        myfile << ",";
-      }
-      myfile << "outcome" << std::endl;
     }
 
     i++;

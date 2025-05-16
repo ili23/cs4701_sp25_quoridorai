@@ -273,21 +273,22 @@ Gamestate::Gamestate() {
   // p1Fences = 0;
   // p2Fences = 1;
 
-  // Second Sample
+  // // Second Sample
 
-  p1Turn = true;
-  p1Pos.first = 0;
-  p1Pos.second = 1;
+  // p1Turn = true;
+  // p1Pos.first = 0;
+  // p1Pos.second = 1;
 
-  p2Pos.first = 3;
-  p2Pos.second = 2;
+  // p2Pos.first = 3;
+  // p2Pos.second = 2;
 
-  hFences[0][1] = true;
-  hFences[1][3] = true;
-  hFences[2][2] = true;
-  hFences[3][3] = true;
-
-  vFences[0][3] = true;
+  // hFences[0][1] = true;
+  // hFences[1][3] = true;
+  // hFences[2][2] = true;
+  // hFences[3][3] = true;
+  // hFences[3][1] = true;
+  // vFences[0][3] = true;
+  // vFences[3][2] = true;
 }
 
 void Gamestate::displayBoard() {
@@ -819,12 +820,11 @@ std::vector<Move> Gamestate::getFenceMoves() {
           if (isValid) {
             // Temporarily place fence
             vFences[row][col] = true;
-            
+            // Print the board state for debugging
             // Check if both players still have paths to goals
             if (pathToEnd(true) && pathToEnd(false)) {
               moves.emplace_back(false, std::make_pair(row, col));
             }
-            
             // Remove temporary fence
             vFences[row][col] = false;
           }
@@ -836,12 +836,6 @@ std::vector<Move> Gamestate::getFenceMoves() {
 }
 
 bool Gamestate::pathToEnd(bool p1) {
-  // Early optimization: if few fences have been placed, a path must exist
-  int totalFencesPlaced = (kStartingFences - p1Fences) + (kStartingFences - p2Fences);
-  if (totalFencesPlaced <= 2) { // update this number to 4 when we bump up the size of the board
-    return true;
-  }
-
   bool reachable[kBoardSize][kBoardSize] = {};
 
   std::queue<std::pair<int, int>> toSearch;
@@ -877,26 +871,7 @@ bool Gamestate::pathToEnd(bool p1) {
       bool blocked = false;
       
       // Check for fences based on movement direction
-      if (dx == 0 && dy == 1) {  // Moving right
-        // Check vertical fence blocking right movement
-        blocked = vFences[currentPos.first][currentPos.second] || 
-                 (currentPos.first > 0 && vFences[currentPos.first-1][currentPos.second]);
-      }
-      else if (dx == 0 && dy == -1) {  // Moving left
-        // Check vertical fence blocking left movement
-        blocked = vFences[currentPos.first][currentPos.second-1] || 
-                 (currentPos.first > 0 && vFences[currentPos.first-1][currentPos.second-1]);
-      }
-      else if (dx == 1 && dy == 0) {  // Moving down
-        // Check horizontal fence blocking downward movement
-        blocked = hFences[currentPos.first][currentPos.second] || 
-                 (currentPos.second > 0 && hFences[currentPos.first][currentPos.second-1]);
-      }
-      else if (dx == -1 && dy == 0) {  // Moving up
-        // Check horizontal fence blocking upward movement
-        blocked = hFences[currentPos.first-1][currentPos.second] || 
-                 (currentPos.second > 0 && hFences[currentPos.first-1][currentPos.second-1]);
-      }
+      blocked = containsFenceInDirection(currentPos, dx, dy);
       
       if (!blocked) {
         reachable[target.first][target.second] = true;
