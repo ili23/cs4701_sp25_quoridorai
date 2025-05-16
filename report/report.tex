@@ -117,6 +117,8 @@ If a game tree can be fully expanded, one can use trivial algorithms to determin
     \item \textbf{Path Resiliency Neural Network.} Uses an MLP that has advanced knowledge of potential paths to the goal encoded as features.
 \end{enumerate}
 
+\subsection{Convolutional Neural Network Design}
+
 \subsection{Shortest Path Resiliency}
 
 The player with the shortest path to the goal will win without intervention by their opponent. The primary intervention is fences, which can be placed to block the previously existing shortest path between a player and the goal region. However, determining the ideal placement of fences is not trivial. Some placements will force a longer detour than others, and some placements will impede the player placing them more than their opponent. We created the resiliency method to provide our neural network with insight into the  impact fence placements will have on the outcome of a given game position.
@@ -153,11 +155,27 @@ There are several features we create for our neural network using this process. 
     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
 \end{enumerate}
 
-\section{Evaluation}
-Explain what assessment you conducted concerning your project.
+\subsection{Training Data Generation}
 
-Initially, we intended to set up a Selenium environment so that our trained agent could play against some ELO based $9\times9$ Quoridor AI's on the web. However, given that we had to reduce our board state down to $5 \times 5$, this was no longer 
-feasible. So, instead we had our agents play against itself with varying hyperparameters. 
+\section{Evaluation}
+
+\subsection{Principles of Evaluation}
+
+As noted earlier, the strength of a MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance our of system by checking for two principles:
+
+\begin{enumerate}
+    \item As the number of iterations is increased for a given system, the playing strength should increase.
+    \item As the accuracy of the evaluation function improves, the number of iterations that are required to achieve the same level of performance should decrease.
+\end{enumerate}
+
+The first principle verifies that an MCTS system is working as expected, while the second principle gives us a method of comparison between different systems.
+
+\subsection{Principle 1: Increasing Iterations Improves Performance}
+
+To verify that increasing the number of iterations increased the performance of our models, we created a methodology to determine the relative playing strength between two models. A first thought would be to play the model against itself; however such a method would only test the model against positions that it itself selects rather than the full breadth of positions that it could encounter. Instead, we conduct many test games and begin each test game with a seqeuence of randomly selected moves. While this process does ensure the model is forced to play from a variety of unique positions, it presents a certain unfairness. Some positions are clearly lost, and are easily converted to wins by the opponent. We avoid this issue by looking at the ratio of wins to losses and draws. Stronger models will be able to find more subtle paths to victory, and will thus achieve a higher win to loss ratio against weaker models when starting from random positions.
+
+\subsection{Principle 2: Better Evaluations Functions Need Fewer Iterations}
+
 % \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.
 
