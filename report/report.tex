@@ -117,6 +117,8 @@ If a game tree can be fully expanded, one can use trivial algorithms to determin
     \item \textbf{Path Resiliency Neural Network.} Uses an MLP that has advanced knowledge of potential paths to the goal encoded as features.
 \end{enumerate}
 
+\subsection{Convolutional Neural Network Design}
+
 \subsection{Shortest Path Resiliency}
 
 The player with the shortest path to the goal will win without intervention by their opponent. The primary intervention is fences, which can be placed to block the previously existing shortest path between a player and the goal region. However, determining the ideal placement of fences is not trivial. Some placements will force a longer detour than others, and some placements will impede the player placing them more than their opponent. We created the resiliency method to provide our neural network with insight into the  impact fence placements will have on the outcome of a given game position.
@@ -153,14 +155,42 @@ There are several features we create for our neural network using this process. 
     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
 \end{enumerate}
 
+\subsection{Training Data Generation}
+
 \section{Evaluation}
-Explain what assessment you conducted concerning your project. Explain what assessment you conducted concerning your project. How well did you do? Be clear about (1) what questions you asked, (2) how you went about answering them, and (3) what specific answers you got. This will likely be quantitative. Your question(s) might be about how well your system worked (perhaps along multiple dimensions), or it might be about how different elements of the system design contributed to overall success. Your project is not complete if you have not thought about how you can evaluate your accomplishments; the nature of this evaluation is part of the design of your project. Be clear why you think you were successful, or not, or in what circumstances. Sloppy or hand-wavy discussions of performance will significantly negatively impact your grade.
 
-Initially, we intended to set up a Selenium environment so that our trained agent could play against some ELO based $9\times9$ Quoridor AI's on the web. However, given that we had to reduce our board state down to $5 \times 5$, this was no longer 
-feasible. So, instead of evaluating our agent against a known ELO, we set up series of games against our own agents with varying hyperparameters as one evaluation metric. Additionally, we also created some tactics and starting positions and asked our model
-to find the best moves for each of them as a way of seeing how well it could play in given situations.  
+\subsection{Principles of Evaluation}
 
-\section{References}
+As noted earlier, the strength of a MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance our of system by checking for two principles:
+
+\begin{enumerate}
+    \item As the number of iterations is increased for a given system, the playing strength should increase.
+    \item As the accuracy of the evaluation function improves, the number of iterations that are required to achieve the same level of performance should decrease.
+\end{enumerate}
+
+The first principle verifies that an MCTS system is working as expected, while the second principle gives us a method of comparison between different systems.
+
+\subsection{Principle 1: Increasing Iterations Improves Performance}
+
+To verify that increasing the number of iterations increased the performance of our models, we created a methodology to determine the relative playing strength between two models. A first thought would be to play the model against itself; however such a method would only test the model against positions that it itself selects rather than the full breadth of positions that it could encounter. Instead, we conduct many test games and begin each test game with a seqeuence of randomly selected moves. While this process does ensure the model is forced to play from a variety of unique positions, it presents a certain unfairness. Some positions are clearly lost, and are easily converted to wins by the opponent. We avoid this issue by looking at the ratio of wins to losses and draws. Stronger models will be able to find more subtle paths to victory, and will thus achieve a higher win to loss ratio against weaker models when starting from random positions.
+
+\subsection{Principle 2: Better Evaluations Functions Require Fewer Iterations}
+
+MCTS systems compensate for imperfect evaluation functions by iteratively exploring and exploiting the most promising potential moves. As the number of iterations increases, the model's understanding of the position becomes more complete, and its analysis becomes more accurate. We compare several different evaluation functions to understand how quickly our models are able to understand more complex positions.
+
+We have the models evaluate a prearranged position (Fig.~\ref{fig:MCTS}A). This position is designed like a tactics puzzle in chess: there is a clear winner with a bit of subtlety in the execution. First, we verify that our MCTS system is able to solve the puzzle. This puzzle is designed as a forced win for player 1, but there is only one right move. Every other move allows player 2 to force a win. The MCTS system selects the best move by finding the child of the root node with the highest $w / n$ ratio. We examine these ratios after 200 and 5000 iterations. It is clear that the model has found the best move after 200 iterations, and it is even more certain after 5000 iterations (Fig.~\ref{fig:MCTS}B).
+
+We use the naive MCTS system as a baseline to compare other systems against. Its evaluation function provides no information about the board, only returning a nonzero value in terminal positions. When MCTS systems evalute with the naive evaluation function, there is an immediate and rapid drop (Fig.~\ref{fig:MCTS}C). This drop is an expected result when analyzing a position with a hidden tatic. With only a shallow search, it seems that the position is lost. It is only after the model has found the winning move and sufficiently explored to verify the expected outcome that the evaluation the increases. As expected, the calculated strength of the position continues to increase until the end of the experiment.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{MCTS_eval.png}
+    \caption{\textbf{Effect of Iteration Count on Performance.} \textbf{(A)} A sample benchmark position that we selected to examine the model's strength as the iteration count increases. Player 1 (red) is to move. If they move directly toward the goal, they will lose and player 2 (green) will reach their goal first. However, if they block player 2 using a wall, they will win. For simplicity, each player has one wall remaining to place. This simple strategy puzzle should be solveable by all MCTS systems with enough iterations. \textbf{(B)} There are 24 valid moves from this position. Exactly one of them prevents player 2 from winning the game. This graph illustrates the softmax of $w/n$ for each possible move after 200 and 5000 MCTS iterations of the basic MCTS model. Higher bars indicate moves that the model prefers. \textbf{(C-F)} Various models' evaluations of the position as they perform more MCTS iterations. The correct evaluation is 1, as the position is  a forced win. Dashed lines show the points at which the histograms were sampled.}
+    \label{fig:MCTS}
+\end{figure}
+
+
+% \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.
 
 % \bibliographystyle{naturemag}
