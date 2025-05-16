@@ -1,3 +1,6 @@
+# Trained models (compiled to c) should not be included
+model.c
+
 */__pycache__
 */venv/*
 */build/*

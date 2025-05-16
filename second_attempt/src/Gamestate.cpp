@@ -1,11 +1,14 @@
 #include "Gamestate.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <functional>
 #include <iomanip>
 #include <iostream>
 #include <limits>
 #include <queue>
+
+#include "model.hpp"
 
 #ifdef TORCH
 #include "torch/script.h"
@@ -323,8 +326,25 @@ std::vector<std::vector<std::pair<int, int>>> subtractAdjacencyLists(
   return result;
 }
 
-std::vector<float> Gamestate::resiliency_vector() {
-  std::vector<float> result;
+double tree_eval(std::vector<double> features) {
+  double features_mapped[8];
+
+  for (int x = 0; x < kResilienceFeatureLength; x++) {
+    if (std::isnan(features[0])) {
+      features_mapped[x] = 0;
+    } else {
+      features_mapped[x] = (features[x] - means[x]) / scale[x];
+    }
+  }
+
+  double prediction[3];
+  score(features_mapped, prediction);
+
+  return -1 * prediction[0] + 1 * prediction[2];
+}
+
+std::vector<double> Gamestate::resiliency_vector() {
+  std::vector<double> result;
 
   int totalNodes = kBoardSize * kBoardSize;
 
@@ -390,15 +410,15 @@ std::vector<float> Gamestate::resiliency_vector() {
   auto [p1FinalShortestDistance, ed] = dijkstraRowWithPathIDs(
       adj1, kBoardSize, p1Pos.first, p1Pos.second, false);
 
-  float p1_raw_resiliency =
-      ((float)p1FinalShortestDistance) / kPathResilienceIters;
-  float p1_scaled_resiliency =
-      ((float)p1FinalShortestDistance) / p1_weights_added;
+  double p1_raw_resiliency =
+      ((double)p1FinalShortestDistance) / kPathResilienceIters;
+  double p1_scaled_resiliency =
+      ((double)p1FinalShortestDistance) / p1_weights_added;
 
-  float p2_raw_resiliency =
-      ((float)p2FinalShortestDistance) / kPathResilienceIters;
-  float p2_scaled_resiliency =
-      ((float)p2FinalShortestDistance) / p2_weights_added;
+  double p2_raw_resiliency =
+      ((double)p2FinalShortestDistance) / kPathResilienceIters;
+  double p2_scaled_resiliency =
+      ((double)p2FinalShortestDistance) / p2_weights_added;
 
   auto adj_p1liability = subtractAdjacencyLists(adj1, adj2);
   auto adj_p2liability = subtractAdjacencyLists(adj2, adj1);
@@ -409,17 +429,17 @@ std::vector<float> Gamestate::resiliency_vector() {
   auto [p2LiabilityDistance, ed2] = dijkstraRowWithPathIDs(
       adj_p2liability, kBoardSize, p2Pos.first, p2Pos.second, true);
 
-  float p1_max_liability = 0;
+  double p1_max_liability = 0;
   for (int u = 0; u < totalNodes; ++u) {
     for (const auto& [v, weight] : adj_p1liability[u]) {
-      p1_max_liability = std::max(p1_max_liability, (float)weight);
+      p1_max_liability = std::max(p1_max_liability, (double)weight);
     }
   }
 
-  float p2_max_liability = 0;
+  double p2_max_liability = 0;
   for (int u = 0; u < totalNodes; ++u) {
     for (const auto& [v, weight] : adj_p2liability[u]) {
-      p2_max_liability = std::max(p2_max_liability, (float)weight);
+      p2_max_liability = std::max(p2_max_liability, (double)weight);
     }
   }
 
@@ -446,6 +466,8 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   if (!smart_eval) {
     return 0;
   }
+
+  // return tree_eval(g.resiliency_vector());
 
 #ifdef TORCH
   // Use game_state_to_tensors to get all necessary tensors
@@ -538,18 +560,18 @@ Gamestate::Gamestate() {
 
   // Second Sample
 
-  p1Turn = true;
-  p1Pos.first = 0;
-  p1Pos.second = 1;
+  // p1Turn = true;
+  // p1Pos.first = 0;
+  // p1Pos.second = 1;
 
-  p2Pos.first = 3;
-  p2Pos.second = 2;
+  // p2Pos.first = 3;
+  // p2Pos.second = 2;
 
-  hFences[0][1] = true;
-  hFences[1][3] = true;
-  hFences[2][2] = true;
-  hFences[3][3] = true;
-  vFences[0][3] = true;
+  // hFences[0][1] = true;
+  // hFences[1][3] = true;
+  // hFences[2][2] = true;
+  // hFences[3][3] = true;
+  // vFences[0][3] = true;
   // hFences[3][1] = true;
   // vFences[0][3] = true;
   // vFences[3][2] = true;

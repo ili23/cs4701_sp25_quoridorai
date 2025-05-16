@@ -24,6 +24,7 @@ set(SOURCES
     src/main.cpp
     src/Node.cpp
     src/MCTS.cpp
+    src/model.c
 )
 
 

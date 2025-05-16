@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr int kSearchIterations = 1000;
+constexpr int kSearchIterations = 10000;
 
 constexpr int kBoardSize = 5;
 
@@ -13,7 +13,7 @@ constexpr int p1_start_second = kBoardSize / 2;
 constexpr int p2_start_first = kBoardSize - 1;
 constexpr int p2_start_second = kBoardSize / 2;
 
-constexpr int kRandomMovesCount = 8;
+constexpr int kRandomMovesCount = 4;
 constexpr int kGameCount = 1000;
 
 constexpr bool kPlayerInput = false;
@@ -22,3 +22,4 @@ constexpr int kMaxFileSize = 20000;
 
 constexpr int kPathResilienceIters = 25;
 constexpr int kPathResilienceWeight = 2;
+constexpr int kResilienceFeatureLength = 8;
