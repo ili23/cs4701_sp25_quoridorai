@@ -530,7 +530,9 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
     return 0;
   }
 
-  return -tree_eval(g.resiliency_vector());
+#ifndef NO_MODEL
+  return (g.p1Turn ? 1 : -1) * tree_eval(g.resiliency_vector());
+#endif
 
 #ifdef TORCH
   // Use game_state_to_tensors to get all necessary tensors
@@ -606,41 +608,42 @@ Gamestate::Gamestate() {
 
   p1Turn = true;
 
-  // First Sample - histogram tactic
-  // hFences[1][1] = true;
-  // hFences[0][3] = true;
-  // vFences[2][0] = true;
+// First Sample - histogram tactic
+#ifdef POS1
+  hFences[1][1] = true;
+  hFences[0][3] = true;
+  vFences[2][0] = true;
 
-  // p1Pos.first = 2;
-  // p1Pos.second = 0;
-  // p2Pos.first = 2;
-  // p2Pos.second = 4;
+  p1Pos.first = 2;
+  p1Pos.second = 0;
+  p2Pos.first = 2;
+  p2Pos.second = 4;
 
-  // p1Turn = false;
+  p1Turn = false;
 
-  // p1Fences = 0;
-  // p2Fences = 1;
+  p1Fences = 0;
+  p2Fences = 1;
+#endif
 
   // Second Sample
+#ifdef POS2
+  p1Turn = true;
+  p1Pos.first = 0;
+  p1Pos.second = 1;
 
-  // p1Turn = true;
-  // p1Pos.first = 0;
-  // p1Pos.second = 1;
+  p2Pos.first = 3;
+  p2Pos.second = 2;
 
-  // p2Pos.first = 3;
-  // p2Pos.second = 2;
-
-  // hFences[0][1] = true;
-  // hFences[1][3] = true;
-  // hFences[2][2] = true;
-  // hFences[3][3] = true;
-  // vFences[0][3] = true;
-  // hFences[3][1] = true;
-  // vFences[0][3] = true;
-  // vFences[3][2] = true;
+  hFences[0][1] = true;
+  hFences[1][3] = true;
+  hFences[2][2] = true;
+  hFences[3][3] = true;
+  vFences[0][3] = true;
+#endif
 
   // Third sample, advanced tatic
 
+#ifdef POS3
   p1Pos.first = 2;
   p1Pos.second = 0;
   p2Pos.first = 3;
@@ -655,6 +658,7 @@ Gamestate::Gamestate() {
 
   p1Fences = 1;
   p2Fences = 1;
+#endif
 }
 
 void Gamestate::displayBoard() {

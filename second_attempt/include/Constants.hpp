@@ -1,6 +1,8 @@
 #pragma once
 
-constexpr int kSearchIterations = 1000;
+#define POS1
+
+constexpr int kSearchIterations = 30000;
 
 constexpr int kBoardSize = 5;
 
@@ -14,7 +16,7 @@ constexpr int p2_start_first = kBoardSize - 1;
 constexpr int p2_start_second = kBoardSize / 2;
 
 constexpr int kRandomMovesCount = 4;
-constexpr int kGameCount = 1000;
+constexpr int kGameCount = 3000;
 
 constexpr bool kPlayerInput = false;
 

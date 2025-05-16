@@ -371,4 +371,4 @@ graph_eval_data(axs[1, 2], "Figure_Data/MCTS_Distr/f_forest_eval_over_time.csv",
 plt.tight_layout()
 
 # plt.show()
-plt.savefig("../report/MCTS_eval.png", dpi=400)
+plt.savefig("../report/MCTS_eval.png", dpi=100)
