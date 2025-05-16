@@ -467,7 +467,7 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
     return 0;
   }
 
-  // return tree_eval(g.resiliency_vector());
+  return tree_eval(g.resiliency_vector());
 
 #ifdef TORCH
   // Use game_state_to_tensors to get all necessary tensors
@@ -543,20 +543,20 @@ Gamestate::Gamestate() {
 
   p1Turn = true;
 
-  // First Sample
-  // hFences[1][1] = true;
-  // hFences[0][3] = true;
-  // vFences[2][0] = true;
+  // First Sample - histogram tactic
+  hFences[1][1] = true;
+  hFences[0][3] = true;
+  vFences[2][0] = true;
 
-  // p1Pos.first = 2;
-  // p1Pos.second = 0;
-  // p2Pos.first = 2;
-  // p2Pos.second = 4;
+  p1Pos.first = 2;
+  p1Pos.second = 0;
+  p2Pos.first = 2;
+  p2Pos.second = 4;
 
-  // p1Turn = false;
+  p1Turn = false;
 
-  // p1Fences = 0;
-  // p2Fences = 1;
+  p1Fences = 0;
+  p2Fences = 1;
 
   // Second Sample
 
@@ -586,6 +586,8 @@ void Gamestate::displayBoard() {
 
   std::cout << "Current board state:" << std::endl << std::endl;
   std::cout << "Evaluation is " << model_evaluate(*this) << std::endl;
+  std::cout << "Smart Evaluation is " << model_evaluate(*this, true)
+            << std::endl;
 
   if (terminal()) {
     if (moveCount >= kMaxMoves) {

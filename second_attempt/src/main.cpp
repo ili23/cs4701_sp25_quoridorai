@@ -116,43 +116,49 @@ int main(int argc, const char* argv[]) {
   // return 0;
 
   // Generating histogram (from fixed positions)
-  // Gamestate gs;
-  // gs.displayBoard();
+  Gamestate gs;
+  gs.displayBoard();
 
-  // std::ofstream data_evals, move_evals;
-  // data_evals.open("naive_vs_naive.csv");
-  // move_evals.open("MCTS_data.csv");
+  std::ofstream data_evals, move_evals;
+  data_evals.open("f_forest_eval_over_time.csv");
+  move_evals.open("e_forest_move_distr.csv");
 
-  // MCTS tree;
+  MCTS tree;
 
-  // tree.startNewSearch(gs);
+  tree.startNewSearch(gs);
+  tree.iterate(200, true);
 
-  // for (int i = 0; i < 10000; i++) {
-  //   tree.iterate(1);
-  //   data_evals << i << ", " << tree.root->w << ", " << tree.root->n
-  //              << std::endl;
+  std::cout << "w " << tree.root->w << " n " << tree.root->n << std::endl;
 
-  //   if (i == 199 || i == 9999) {
-  //     int c_idx = 0;
-  //     for (auto c : tree.root->children) {
-  //       move_evals << c_idx << ", " << i + 1 << ", " << c->w << ", " << c->n
-  //                  << std::endl;
-  //       c_idx++;
-  //     }
-  //   }
-  // }
+  tree.root->displayChildren();
 
-  // tree.iterate(200);
+  return 0;
+
+  for (int i = 0; i < 5000; i++) {
+    tree.iterate(1, true);
+    data_evals << i << ", " << tree.root->w << ", " << tree.root->n
+               << std::endl;
+
+    if (i == 199 || i == 4999) {
+      int c_idx = 0;
+      for (auto c : tree.root->children) {
+        move_evals << c_idx << ", " << i + 1 << ", " << c->w << ", " << c->n
+                   << std::endl;
+        c_idx++;
+      }
+    }
+  }
+
+  // tree.iterate(200, true);
   // int i = 0;
-  //
 
-  // tree.iterate(10000 - 200);
+  // tree.iterate(10000 - 200, true);
   // i = 0;
-  // for(auto c : tree.root->children) {
+  // for (auto c : tree.root->children) {
   //   myfile << i << ", " << 10000 << ", " << c->w << ", " << c->n <<
   //   std::endl; i++;
   // }
-  // return 0;
+  return 0;
 
 #ifdef TORCH
   if (argc != 2) {

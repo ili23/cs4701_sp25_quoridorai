@@ -281,127 +281,94 @@ fig, axs = plt.subplots(2, 3, figsize=(12, 3.75 * 2))
 
 pawn1_pos = (2, 4)
 pawn2_pos = (2, 0)
-fences = [(2, 0, "h"), (1, 0, "h"), (2, 0, "h"), (2, 1, "v"),  (2, 2, "v"),  (3, 3, "v"),  (3, 4, "v"),]
+fences = [
+    (2, 0, "h"),
+    (1, 0, "h"),
+    (2, 0, "h"),
+    (2, 1, "v"),
+    (2, 2, "v"),
+    (3, 3, "v"),
+    (3, 4, "v"),
+]
 render(axs[0, 0], "(A) Example position", None, (1, 2))
 
 # PUT DATA ABOUT DISTRIBUTION HERE
 
-data = np.genfromtxt("MCTS_data.csv", delimiter=",")
-
-def softmax(x):
-    exps = np.exp(x - np.max(x))  # subtract max for numerical stability
-    return exps / np.sum(exps)
-
-data1 = data[data[:, 1] == 200, 2:]
-data1 = data1[:, 0] / data1[:, 1]
-data1 = softmax(data1)
-
-data2 = data[data[:, 1] == 10000, 2:]
-data2 = data2[:, 0] / data2[:, 1]
-data2 = softmax(data2)
-print(data1)
-# Histogram settings
-bins = np.linspace(0, 1, data1.shape[0])
-width = data1.shape[0] * 0.4  # width of each bar
-
-x = np.arange(data1.shape[0])  # x positions, like 0, 1, 2, ...
-
-bar_width = 0.4  # Controls spacing between bars
-
-axs[0, 1].bar(x - bar_width/2, data1, width=bar_width, color='tab:blue', label='$200$ iters.')
-axs[0, 1].bar(x + bar_width/2, data2, width=bar_width, color='tab:orange', label='$10000$ iters.')
-
-# Optional: custom x-axis labels
-# plt.xticks(x, ['A', 'B', 'C', 'D'])  # or just use range if unnamed
+def render_hist(ax, path, title, legend=False):
+    data = np.genfromtxt(path, delimiter=",")
 
 
-
-axs[0, 1].set_title("(B) Move evaluations", fontweight="bold")
-axs[0, 1].set_xlabel("Moves",labelpad=-7)
-axs[0, 1].set_ylabel("Distribution")
-
-axs[0, 1].set_yticks((0, 0.1, 0.2))
-axs[0, 1].set_ylim(0, 0.2)
-
-axs[0, 1].set_xticks(list(range(0, data1.shape[0])))
-axs[0, 1].xaxis.set_tick_params(labelcolor='none')
-
-axs[0, 1].legend()
-
-eval_data = np.genfromtxt("MCTS_data_evals.csv", delimiter=",")
-
-axs[0, 2].plot(-(eval_data[:, 1] / eval_data[:, 2]), color="tab:purple")
-
-axs[0, 2].set_title("(C) Position evaluation", fontweight="bold")
-axs[0, 2].set_xticks((0, 5000, 10000))
-axs[0, 2].set_yticks((-1, 0, 1))
-axs[0, 2].axvline(200, linestyle="dashed", color="tab:blue")
-axs[0, 2].axvline(10000, linestyle="dashed", color="tab:orange")
-axs[0, 2].set_xlabel("MCTS Iterations")
-axs[0, 2].set_ylabel("Strength", labelpad=-3)
+    def softmax(x):
+        exps = np.exp(x - np.max(x))  # subtract max for numerical stability
+        return exps / np.sum(exps)
 
 
+    data1 = data[data[:, 1] == 200, 2:]
+    data1 = data1[:, 0] / data1[:, 1]
 
 
+    data1 = softmax(data1)
 
 
-data = np.genfromtxt("MCTS_data2.csv", delimiter=",")
+    data2 = data[data[:, 1] == 5000, 2:]
+    data2 = data2[:, 0] / data2[:, 1]
 
-def softmax(x):
-    exps = np.exp(x - np.max(x))  # subtract max for numerical stability
-    return exps / np.sum(exps)
+    data2 = softmax(data2)
+    # Histogram settings
+    bins = np.linspace(0, 1, data1.shape[0])
+    width = data1.shape[0] * 0.4  # width of each bar
 
-data1 = data[data[:, 1] == 200, 2:]
-data1 = data1[:, 0] / data1[:, 1]
-data1 = softmax(data1)
+    x = np.arange(data1.shape[0])  # x positions, like 0, 1, 2, ...
 
-data2 = data[data[:, 1] == 10000, 2:]
-data2 = data2[:, 0] / data2[:, 1]
-data2 = softmax(data2)
-print(data1)
-# Histogram settings
-bins = np.linspace(0, 1, data1.shape[0])
-width = data1.shape[0] * 0.4  # width of each bar
+    bar_width = 0.4  # Controls spacing between bars
 
-x = np.arange(data1.shape[0])  # x positions, like 0, 1, 2, ...
+    ax.bar(
+        x - bar_width / 2, data1, width=bar_width, color="tab:blue", label="$200$ iters."
+    )
+    ax.bar(
+        x + bar_width / 2,
+        data2,
+        width=bar_width,
+        color="tab:orange",
+        label="$5000$ iters.",
+    )
 
-bar_width = 0.4  # Controls spacing between bars
+    ax.set_title(title, fontweight="bold")
 
-axs[1, 1].bar(x - bar_width/2, data1, width=bar_width, color='tab:blue', label='$200$ iters.')
-axs[1, 1].bar(x + bar_width/2, data2, width=bar_width, color='tab:orange', label='$10000$ iters.')
+    ax.set_ylabel("Softmax density", labelpad=0)
+
+    ax.set_ylim((0, 0.2))
+    ax.set_yticks((0, 0.1, 0.2))
+    ax.legend(loc='upper left')
+
+render_hist(axs[0, 1], "Figure_Data/MCTS_Distr/b_naive_move_distr.csv", "(B) Naive move evaluations", True)
+render_hist(axs[0, 2], "Figure_Data/MCTS_Distr/e_forest_move_distr.csv", "(C) Forest move evaluations", False)
 
 # Optional: custom x-axis labels
 # plt.xticks(x, ['A', 'B', 'C', 'D'])  # or just use range if unnamed
 
+def graph_eval_data(ax, path, title, lines=False):
+
+    eval_data = np.genfromtxt(path, delimiter=",")[:5000, :]
+
+    ax.plot(-(eval_data[:, 1] / eval_data[:, 2]), color="tab:purple")
+
+    ax.set_title(title, fontweight="bold")
+    ax.set_xticks((0, 2500, 5000))
+    ax.set_yticks((-1, 0, 1))
+    if lines:
+        ax.axvline(200, linestyle="dashed", color="tab:blue")
+        ax.axvline(5000, linestyle="dashed", color="tab:orange")
+    ax.set_xlabel("MCTS Iterations")
+    ax.set_ylabel("Strength", labelpad=-3)
 
 
-axs[1, 1].set_title("(B) Move evaluations", fontweight="bold")
-axs[1, 1].set_xlabel("Moves",labelpad=-7)
-axs[1, 1].set_ylabel("Distribution")
-
-axs[1, 1].set_yticks((0, 0.1, 0.2))
-axs[1, 1].set_ylim(0, 0.2)
-
-axs[1, 1].set_xticks(list(range(0, data1.shape[0])))
-axs[1, 1].xaxis.set_tick_params(labelcolor='none')
-
-axs[1, 1].legend()
-
-eval_data = np.genfromtxt("MCTS_data_evals2.csv", delimiter=",")
-
-axs[1, 2].plot(-(eval_data[:, 1] / eval_data[:, 2]), color="tab:purple")
-
-axs[1, 2].set_title("(C) Position evaluation", fontweight="bold")
-axs[1, 2].set_xticks((0, 5000, 10000))
-axs[1, 2].set_yticks((-1, 0, 1))
-axs[1, 2].axvline(200, linestyle="dashed", color="tab:blue")
-axs[1, 2].axvline(10000, linestyle="dashed", color="tab:orange")
-axs[1, 2].set_xlabel("MCTS Iterations")
-axs[1, 2].set_ylabel("Strength", labelpad=-3)
-
+graph_eval_data(axs[1, 0], "Figure_Data/MCTS_Distr/c_naive_eval_over_time.csv", "(D) Naive position evaluation", True)
+graph_eval_data(axs[1, 1], "Figure_Data/MCTS_Distr/d_basic_eval_over_time.csv", "(E) Basic position evaluation")
+graph_eval_data(axs[1, 2], "Figure_Data/MCTS_Distr/f_forest_eval_over_time.csv", "(F) Forest position evaluation", True)
 
 
 plt.tight_layout()
 
-plt.show()
-# plt.savefig("../report/MCTS_eval.png")
+# plt.show()
+plt.savefig("../report/MCTS_eval.png", dpi=400)
