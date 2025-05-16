@@ -174,7 +174,21 @@ The first principle verifies that an MCTS system is working as expected, while t
 
 To verify that increasing the number of iterations increased the performance of our models, we created a methodology to determine the relative playing strength between two models. A first thought would be to play the model against itself; however such a method would only test the model against positions that it itself selects rather than the full breadth of positions that it could encounter. Instead, we conduct many test games and begin each test game with a seqeuence of randomly selected moves. While this process does ensure the model is forced to play from a variety of unique positions, it presents a certain unfairness. Some positions are clearly lost, and are easily converted to wins by the opponent. We avoid this issue by looking at the ratio of wins to losses and draws. Stronger models will be able to find more subtle paths to victory, and will thus achieve a higher win to loss ratio against weaker models when starting from random positions.
 
-\subsection{Principle 2: Better Evaluations Functions Need Fewer Iterations}
+\subsection{Principle 2: Better Evaluations Functions Require Fewer Iterations}
+
+MCTS systems compensate for imperfect evaluation functions by iteratively exploring and exploiting the most promising potential moves. As the number of iterations increases, the model's understanding of the position becomes more complete, and its analysis becomes more accurate. We compare several different evaluation functions to understand how quickly our models are able to understand more complex positions.
+
+We have the models evaluate a prearranged position (Fig.~\ref{fig:MCTS}A). This position is designed like a tactics puzzle in chess: there is a clear winner with a bit of subtlety in the execution. First, we verify that our MCTS system is able to solve the puzzle. This puzzle is designed as a forced win for player 1, but there is only one right move. Every other move allows player 2 to force a win. The MCTS system selects the best move by finding the child of the root node with the highest $w / n$ ratio. We examine these ratios after 200 and 5000 iterations. It is clear that the model has found the best move after 200 iterations, and it is even more certain after 5000 iterations (Fig.~\ref{fig:MCTS}B).
+
+We use the naive MCTS system as a baseline to compare other systems against. Its evaluation function provides no information about the board, only returning a nonzero value in terminal positions. When MCTS systems evalute with the naive evaluation function, there is an immediate and rapid drop (Fig.~\ref{fig:MCTS}C). This drop is an expected result when analyzing a position with a hidden tatic. With only a shallow search, it seems that the position is lost. It is only after the model has found the winning move and sufficiently explored to verify the expected outcome that the evaluation the increases. As expected, the calculated strength of the position continues to increase until the end of the experiment.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{MCTS_eval.png}
+    \caption{\textbf{Effect of Iteration Count on Performance.} \textbf{(A)} A sample benchmark position that we selected to examine the model's strength as the iteration count increases. Player 1 (red) is to move. If they move directly toward the goal, they will lose and player 2 (green) will reach their goal first. However, if they block player 2 using a wall, they will win. For simplicity, each player has one wall remaining to place. This simple strategy puzzle should be solveable by all MCTS systems with enough iterations. \textbf{(B)} There are 24 valid moves from this position. Exactly one of them prevents player 2 from winning the game. This graph illustrates the softmax of $w/n$ for each possible move after 200 and 5000 MCTS iterations of the basic MCTS model. Higher bars indicate moves that the model prefers. \textbf{(C-F)} Various models' evaluations of the position as they perform more MCTS iterations. The correct evaluation is 1, as the position is  a forced win. Dashed lines show the points at which the histograms were sampled.}
+    \label{fig:MCTS}
+\end{figure}
+
 
 % \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.
