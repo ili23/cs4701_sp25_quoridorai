@@ -21,29 +21,29 @@ class QuoridorCNN(nn.Module):
     to capture spatial patterns like wall structures and pawn positioning.
     """
     
-    def __init__(self, grid_size=17):
+    def __init__(self, grid_size=9):
         super(QuoridorCNN, self).__init__()
         # Convolutional layers
-        self.conv1 = nn.Conv2d(in_channels=4, out_channels=32, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
-        conv_output_size = 64 * grid_size * grid_size
+        self.conv1 = nn.Conv2d(in_channels=4, out_channels=16, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding=1)
+        conv_output_size = 32 * grid_size * grid_size
 
         # Fully connected layers
-        self.fc_board1 = nn.Linear(conv_output_size, 512)
-        self.fc_board2 = nn.Linear(512, 256)
-        self.fc_fence = nn.Linear(2, 32)
-        self.fc_move_count = nn.Linear(1, 16)
-        self.fc_combined = nn.Linear(256 + 32 + 16, 128)
-        self.fc_output = nn.Linear(128, 1)
+        self.fc_board1 = nn.Linear(conv_output_size, 256)
+        self.fc_board2 = nn.Linear(256, 128)
+        self.fc_fence = nn.Linear(2, 16)
+        self.fc_move_count = nn.Linear(1, 8)
+        self.fc_combined = nn.Linear(128 + 16 + 8, 64)
+        self.fc_output = nn.Linear(64, 1)
         
         # Batch normalization layers
-        self.bn1 = nn.BatchNorm2d(32)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.bn3 = nn.BatchNorm2d(64)
-        self.bn_fc1 = nn.BatchNorm1d(512)
-        self.bn_fc2 = nn.BatchNorm1d(256)
-        self.bn_fc3 = nn.BatchNorm1d(128)
+        self.bn1 = nn.BatchNorm2d(16)
+        self.bn2 = nn.BatchNorm2d(32)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.bn_fc1 = nn.BatchNorm1d(256)
+        self.bn_fc2 = nn.BatchNorm1d(128)
+        self.bn_fc3 = nn.BatchNorm1d(64)
         
         # Dropout for regularization
         self.dropout = nn.Dropout(0.3)
