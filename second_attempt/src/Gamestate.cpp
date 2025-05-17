@@ -531,7 +531,7 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   }
 
 #ifndef NO_MODEL
-  return (g.p1Turn ? 1 : -1) * tree_eval(g.resiliency_vector());
+  return (g.p1Turn ? -1 : 1) * tree_eval(g.resiliency_vector());
 #endif
 
 #ifndef TORCH
@@ -561,8 +561,7 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   inputs.push_back(inner_tuple);
 
   torch::Tensor output = module.forward(inputs).toTensor();
-  std::cout << "Output  : " << output << std::endl;
-  return output.item<float>();
+  return (g.p1Turn ? 1 : -1) * output.item<float>();
 
 #endif
 }
