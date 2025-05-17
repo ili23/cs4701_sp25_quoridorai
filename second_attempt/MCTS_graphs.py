@@ -438,5 +438,5 @@ if __name__ == "__main__":
 
     plt.tight_layout()
 
-    plt.show()
-    # plt.savefig("../report/MCTS_eval.png", dpi=400)
+    # plt.show()
+    plt.savefig("../report/MCTS_eval.png", dpi=400)
