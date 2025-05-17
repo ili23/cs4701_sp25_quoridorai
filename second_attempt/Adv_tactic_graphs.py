@@ -41,7 +41,7 @@ if __name__ == "__main__":
     )
 
     render_hist(
-        axs[0, 2],
+        axs[0, 3],
         "Figure_Data/Adv_tactic/e_forest_move_distr.csv",
        "(D) Forest move evaluations",
         False,
@@ -57,7 +57,7 @@ if __name__ == "__main__":
     )
 
     render_hist(
-        axs[0, 3],
+        axs[0, 2],
         "Figure_Data/Adv_tactic/cnn_histogram.csv",
          "(C) CNN move evaluations",
         
