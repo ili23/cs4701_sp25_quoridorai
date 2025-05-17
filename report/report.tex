@@ -22,7 +22,10 @@
 \usepackage{titlesec}
 \titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
 \titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{0.5em}{}
-
+\usepackage{hyperref}
+% Project Links
+\newcommand{\githubLink}{\url{test}}
+\newcommand{\presentationLink}{\url{test}}
 % Bibliography (basic)
 % \usepackage[superscript,sort&compress]{natbib}
 
@@ -34,13 +37,13 @@
 \date{May 17, 2025}
 
 \begin{document}
-
 \maketitle
 
 \begin{abstract}
 We present a Monte Carlo Tree Search and neural network evaluation method to play Quoridor, a two person deterministic strategy game with a high branching factor and numerous intricacies.
 \end{abstract}
-
+Github Link: \githubLink \\
+Presentation Recording Link: \presentationLink
 \section{Introduction}
 Quoridor is a deterministic, two player game with perfect information. Each player has a pawn on a square board and a limited number of fences. Players start on opposing sides of the board, and their goal is simple: to reach their opponent's back row. On each turn, they may either opt to move their pawn a single space or to place a fence. Fences sit between board spaces and block pawns from moving across. Players are required to leave at least one viable path for their opponent to reach the goal, and the first player to reach their corresponding goal area wins the game.
 
@@ -214,6 +217,8 @@ The basic evaluation function provides an iterative improvement over the naive f
     \label{fig:AdvTactic}
 \end{figure}
 
+\section{Next Steps}
+\section{References}
 % \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.
 

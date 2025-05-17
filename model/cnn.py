@@ -98,15 +98,31 @@ class QuoridorLightningModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         features, targets = batch
         outputs = self(features)
-        loss = F.mse_loss(outputs, targets) 
+        loss = F.mse_loss(outputs, targets)
+        
+        # Calculate accuracy - consider prediction correct if sign matches target
+        pred_sign = torch.sign(outputs)
+        target_sign = torch.sign(targets)
+        accuracy = (pred_sign == target_sign).float().mean()
+        
+        # Log metrics
         self.log('train_loss', loss, prog_bar=True)
+        self.log('train_accuracy', accuracy, prog_bar=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
         features, targets = batch
         outputs = self(features)
         loss = F.mse_loss(outputs, targets)
+        
+        # Calculate accuracy - consider prediction correct if sign matches target
+        pred_sign = torch.sign(outputs)
+        target_sign = torch.sign(targets)
+        accuracy = (pred_sign == target_sign).float().mean()
+        
+        # Log metrics
         self.log('val_loss', loss, prog_bar=True)
+        self.log('val_accuracy', accuracy, prog_bar=True)
         return loss
     
     def configure_optimizers(self):

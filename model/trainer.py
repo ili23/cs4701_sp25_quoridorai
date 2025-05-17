@@ -39,7 +39,7 @@ class QuoridorTrainer:
     - Running training & validation
     """
     
-    def __init__(self, data_path = None, batch_size = 32, max_epochs = 100):
+    def __init__(self, data_path = None, batch_size = 64, max_epochs = 100):
         self.data_path = data_path
         self.batch_size = batch_size
         self.max_epochs = max_epochs
@@ -79,7 +79,7 @@ class QuoridorTrainer:
         
         early_stop_callback = EarlyStopping(
             monitor='val_loss',
-            patience=10,
+            patience=2,
             mode='min'
         )
         
@@ -107,8 +107,8 @@ if __name__ == "__main__":
     print("Training model...")
     trainer = QuoridorTrainer(
         data_path="./model/training_data/gamestate0.csv",
-        batch_size=32,
-        max_epochs=5
+        batch_size=128,
+        max_epochs=50
     )
     
     results = trainer.train()

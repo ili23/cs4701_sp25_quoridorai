@@ -4,7 +4,7 @@ project(MCTS_cpp)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(USE_ASAN "Enable AddressSanitizer" ON)
+option(USE_ASAN "Enable AddressSanitizer" OFF)
 
 if (USE_ASAN)
     message(STATUS "Building with AddressSanitizer")

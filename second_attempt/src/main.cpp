@@ -224,9 +224,9 @@ int main(int argc, const char* argv[]) {
   // generateResilienceTrainingData();
 
   // Generating histogram (from fixed positions)
-  generateHistogramAndMCTSEval();
+  // generateHistogramAndMCTSEval();
 
-  // return generateWinRatio(argc, argv);
+  return generateWinRatio(argc, argv);
 };
 
 #ifdef TORCH
