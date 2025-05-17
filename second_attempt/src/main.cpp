@@ -159,6 +159,18 @@ void generateHistogramAndMCTSEval() {
 }
 
 int generateWinRatio(int argc, const char* argv[]) {
+  #ifdef TORCH
+  // Load the PyTorch model - using a default path if not provided
+  try {
+    std::string model_path = "../../model/checkpoints/quoridor_cnn_final_traced.pt"; // Replace with your default model path
+    std::cout << "Loading model from " << model_path << std::endl;
+    Gamestate::module = torch::jit::load(model_path);
+    std::cout << "Model loaded successfully" << std::endl;
+  } catch (const c10::Error& e) {
+    std::cerr << "Error loading the model: " << e.what() << std::endl;
+    std::cerr << "Continuing without model..." << std::endl;
+  }
+  #endif
   int p1MCTSiters = std::stoi(argv[1]);
   int p2MCTSiters = std::stoi(argv[2]);
 
@@ -237,9 +249,9 @@ int main(int argc, const char* argv[]) {
   // generateResilienceTrainingData();
 
   // Generating histogram (from fixed positions)
-  generateHistogramAndMCTSEval();
+  // generateHistogramAndMCTSEval();
 
-  // return generateWinRatio(argc, argv);
+  return generateWinRatio(argc, argv);
 };
 
 // #ifdef TORCH
