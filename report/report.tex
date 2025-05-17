@@ -30,13 +30,13 @@
 \titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{0.5em}{}
 \usepackage{hyperref}
 % Project Links
-\newcommand{\githubLink}{\url{test}}
+\newcommand{\githubLink}{\url{https://github.com/ili23/cs4701_sp25_quoridorai}}
 \newcommand{\presentationLink}{\url{test}}
 % Bibliography (basic)
 % \usepackage[superscript,sort&compress]{natbib}
 
 % Title
-\title{\bfseries Using Monte Carlo Tree Search and Random Forest Decision Trees in an AI Agent to Play Quoridor}
+\title{\bfseries Using Monte Carlo Tree Search, Neural Networks, and Random Forest Decision Trees in an AI Agent to Play Quoridor}
 \author{
     Iram Liu, Jacob Groner, Mason Raffo
 }
@@ -45,8 +45,7 @@
 \begin{document}
 \maketitle
 
-\begin{abstract}
-We present a Monte Carlo Tree Search and neural network evaluation method to play Quoridor, a two person deterministic strategy game with a high branching factor and numerous intricacies.
+\begin{abstract}We present a Monte Carlo Tree Search, neural network, and random forest decision tree evaluation method to play Quoridor, a two person deterministic strategy game with a high branching factor and numerous intricacies.
 \end{abstract}
 Github Link: \githubLink \\
 Presentation Recording Link: \presentationLink
@@ -207,7 +206,9 @@ To use machine learning method to understand positions based on these path resil
 
 \subsection{Principles of Evaluation}
 
-As noted earlier, the strength of an MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance of our system by checking for two principles:
+As mentioned earlier, our original goal was to have our bot compete against other people's algorithms as well as existing online Quoridor bots. Unfortunately, since we reduced the board size to 5 × 5 to address the computational limitations, we couldn't find any available Quoridor agents that were compatible with this configuration. As a result, we had to explore alternative evaluation strategies.
+
+The strength of an MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance of our system by checking for two principles:
 
 \begin{enumerate}
     \item As the number of iterations is increased for a given system, the playing strength should increase.
@@ -263,7 +264,6 @@ The random forest evaluation function demonstrates a marked improvement over bot
     \label{fig:AdvTactic}
 \end{figure}
 
-\section{Next Steps}
 \section{References}
 % \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.

@@ -561,7 +561,6 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   inputs.push_back(inner_tuple);
 
   torch::Tensor output = module.forward(inputs).toTensor();
-  std::cout << "Output  : " << output << std::endl;
   return output.item<float>();
 
 #endif
