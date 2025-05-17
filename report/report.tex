@@ -28,8 +28,10 @@
 \usepackage{titlesec}
 \titleformat{\section}{\normalfont\Large\bfseries}{\thesection.}{0.5em}{}
 \titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{0.5em}{}
-
-
+\usepackage{hyperref}
+% Project Links
+\newcommand{\githubLink}{\url{test}}
+\newcommand{\presentationLink}{\url{test}}
 % Bibliography (basic)
 % \usepackage[superscript,sort&compress]{natbib}
 
@@ -41,13 +43,13 @@
 \date{May 17, 2025}
 
 \begin{document}
-
 \maketitle
 
 \begin{abstract}
 We present a Monte Carlo Tree Search and neural network evaluation method to play Quoridor, a two person deterministic strategy game with a high branching factor and numerous intricacies.
 \end{abstract}
-
+Github Link: \githubLink \\
+Presentation Recording Link: \presentationLink
 \section{Introduction}
 Quoridor is a deterministic, two player game with perfect information. Each player has a pawn on a square board and a limited number of fences. Players start on opposing sides of the board, and their goal is simple: to reach their opponent's back row. On each turn, they may either opt to move their pawn a single space or to place a fence. Fences sit between board spaces and block pawns from moving across. Players are required to leave at least one viable path for their opponent to reach the goal, and the first player to reach their corresponding goal area wins the game.
 
@@ -163,13 +165,13 @@ This technique shines when there are many paths to the goal for both players, an
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{path_figure.png}
-    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency weights of players 1 and 2, respectively. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Calculated as player 1 resiliency weights minus player 2 resiliency weights. A high values indicates that the edge is very damaging to player 1 when blocked, while not damaging to player 2. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
+    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency weights of players 1 and 2, respectively. Lines between board squares represent edges. The color of the edge represents the weight after the designated number of pathfinding iterations. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Calculated as player 1 resiliency weights minus player 2 resiliency weights. A high values indicates that the edge is very damaging to player 1 when blocked, while not damaging to player 2. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
     \label{fig:resiliency}
 \end{figure}
 
 Due to the discrete and uniform nature of these edge weight modifications, the number of iterations is not relevant beyond a sufficient threshold ($=25$, in our testing). After sufficient iterations, all the resulting weights are nearly equivalent up to scale.
 
-There are several features we create for our decision tree using this process. Each feature is calculated twice: once from each player's perspective.
+There are several scalar-valued features we create for our decision tree using this process. Each feature is calculated twice: once from each player's perspective. Thus, the input vector to the decision tree is a 10 dimensional vector.
 
 \begin{enumerate}
     \item \textbf{Original shortest path distance.} The distance between the pawn and the goal, without considering future fence placements.
@@ -179,14 +181,23 @@ There are several features we create for our decision tree using this process. E
     \item \textbf{Maximum liability.} Encodes the maximum weight value in the liability graph.
 \end{enumerate}
 
+In our final implementation, only edges that can be blocked by valid fence placements will accumulate weight. This prevents the system from recognizing a bottleneck that could not legally be obstructed.
+
 % \begin{enumerate}
 %     \item \textbf{Scaled resiliency distance.} This scalar encodes the information of Fig.~\ref{fig:resiliency}B. It is the percentage of the total weight that is included in the shortest path from the player to the goal after all of the iterations are complete.
 %     \item \textbf{Raw resiliency distance.} This scalar is similar to (1), but it does not depend on the amount of total weight added during the iterative phase. It is calculated as the total weight along the shortest path to the goal divided by the number of iterations.
 %     \item \textbf{Scaled targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (1).
 %     \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
-%     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
+%     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D. 
 % \end{enumerate}
-
+\subsection{Convolutional Neural Network Design}
+To improve the speed of the evaluation function, we implemented a convolutional neural network (CNN) to replace the random roll-outs. We chose to use a CNN since we wanted our model to learn and recognize pawn and wall patterns regardless of where it was on the board. 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{cnn_arch.png}
+    \caption{\textbf{CNN architecture.}}
+    \label{fig:cnn_arch}
+\end{figure}
 \subsection{Training Data Generation}
 
 To use machine learning method to understand positions based on these path resiliency features, we needed to be able to generate training examples. These training examples would include the path resiliency features and a ``ground truth'' value of the position. As we will discuss later, a sufficient number of iterations allows any MCTS model to perform well (Section~\ref{sec:moreitersisbetter}). To generate training examples, we had the basic model play against itself with a large number of MCTS iterations. After the game was concluded, we created an example out of each position that was seen in the game, and whether that position ultimately led to a victory. Each game was initialized with four random moves to ensure variety in the positions. 
@@ -250,11 +261,14 @@ The random forest evaluation function demonstrates a marked improvement over bot
     \label{fig:AdvTactic}
 \end{figure}
 
+\section{Next Steps}
+\section{References}
 % \section{References}
 % Cite your sources using \texttt{natbib} style: \cite{example}.
 
 % \bibliographystyle{naturemag}
 % \bibliography{references}
+% https://alexlenail.me/NN-SVG/LeNet.html
 
 \end{document}
 

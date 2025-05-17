@@ -18,7 +18,7 @@ torch::jit::script::Module Gamestate::module;
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor> game_state_to_tensors(
     Gamestate& state) {
   // Create a 4x17x17 tensor to represent the board state
-  torch::Tensor board_tensor = torch::zeros({1, 4, 17, 17});
+  torch::Tensor board_tensor = torch::zeros({1, 4, 9, 9});
 
   // Set player positions based on whose turn it is
   if (state.p1Turn) {
@@ -561,7 +561,7 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   inputs.push_back(inner_tuple);
 
   torch::Tensor output = module.forward(inputs).toTensor();
-
+  std::cout << "Output  : " << output << std::endl;
   return output.item<float>();
 
 #endif

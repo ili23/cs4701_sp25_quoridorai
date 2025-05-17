@@ -1,6 +1,5 @@
 #pragma once
-
-#define POS3
+#define POS1
 #define NO_MODEL
 
 constexpr int kSearchIterations = 30000;
@@ -17,7 +16,7 @@ constexpr int p2_start_first = kBoardSize - 1;
 constexpr int p2_start_second = kBoardSize / 2;
 
 constexpr int kRandomMovesCount = 4;
-constexpr int kGameCount = 3000;
+constexpr int kGameCount = 200;
 
 constexpr bool kPlayerInput = false;
 

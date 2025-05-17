@@ -36,9 +36,7 @@ class QuoridorDataset(Dataset):
         else:
             self.states = []
             self.targets = []
-    def extract_features_1d(self, state):
-        """
-        Extracts out the resilience and targetability features of the players into """
+
     def extract_features_2d(self, state, standardize_perspective=True):
         """
         Convert a game state to a 2D tensor representation for CNN input using a 17x17 grid.
