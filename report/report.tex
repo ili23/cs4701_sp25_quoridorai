@@ -57,13 +57,13 @@ Quoridor is a deterministic, two player game with perfect information. Each play
 
 \section{Project Description}
 
-We sought to make an AI agent that was capable of playing Quoridor. Initially, we intended to focus on a primarily convolutional neural network-based approach and evaluate it against an agent that played using random roll-outs. As we progressed, we found that using random roll-outs presented significant challenges, eventually abandoning their use altogether. We implemented our preliminary attempts in python, but the language's high overhead forced us to complete our final implementations in C++. This re-implementation proved to be unexpectedly difficult, costing us considerable time debugging the many edge cases surrounding pawn moves.
+We sought to make an AI agent that was capable of playing Quoridor. Initially, we intended to focus on a primarily convolutional neural network-based approach and evaluate it against an agent that played using random roll-outs. As we progressed, we found that using random roll-outs presented significant challenges, eventually abandoning their use altogether. We implemented our preliminary attempts in Python, but the language's high overhead forced us to complete our final implementations in C++. This re-implementation proved to be unexpectedly difficult, costing us considerable time debugging the many edge cases surrounding pawn moves.
 
-After our networks were complete, we found that the convolutional neural network was under-performing. We investigated deeper into the mechanics of the game, and outsourced some complex pathfinding logic to features before the network. Our second network had fewer parameters, but performed better due to the computations encoded in its input features.
+After our models were complete, we found that the convolutional neural network was under-performing. We investigated deeper into the mechanics of the game, and outsourced some complex pathfinding logic to features before the models and used a random forest decision tree classifier. Our second model was less complex, but performed better due to the intelligent computations encoded in its input features.
 
 \subsection{Rules of Quoridor}
 
-As previously discussed, Quoridor is played on a square board and each player controls one pawn (Fig.~\ref{fig:rules}A). Quoridor has several variations, and many of them use a $9 \times 9$ sized board. We have opted to use a $5 \times 5$ board due to limited computing resources. The aim of the game is to move your pawn into the goal regions (Fig.~\ref{fig:rules}C). To slow down their opponent, players have a certain number of fences that they may place on the board to block their opponent's path. These fences each span two spaces, and a player cannot cross a fence (Fig.~\ref{fig:rules}B). A fence may not be placed if doing so would block either player's only remaining path to the goal (Fig.~\ref{fig:rules}D). Pawns may never occupy the same space. To prevent stalemates, pawns may jump over each other if their path is blocked (Fig.~\ref{fig:rules}E). Pawns may jump diagonally only if a fence blocks their primary jump (Fig.~\ref{fig:rules}F). To limit the length of games, we instituted a move limit. Games that exceed this number of moves are declared to be drawn.
+As previously discussed, Quoridor is played on a square board and each player controls one pawn (Fig.~\ref{fig:rules}A). Quoridor has several variations,  many of them using a $9 \times 9$ sized board. We have opted to use a $5 \times 5$ board due to limited computing resources. The aim of the game is to move your pawn into the goal regions (Fig.~\ref{fig:rules}C). To slow down their opponent, players have a certain number of fences (3) that they may place on the board to block their opponent's path. These fences each span two spaces, and a player cannot cross a fence (Fig.~\ref{fig:rules}B). A fence may not be placed if doing so would block either player's only remaining path to the goal (Fig.~\ref{fig:rules}D). Pawns may never occupy the same space. To prevent stalemates, pawns may jump over each other if their path is blocke by the other pawn (Fig.~\ref{fig:rules}E). Pawns may jump diagonally only if a fence blocks their primary jump (Fig.~\ref{fig:rules}F). To limit the length of games, we instituted  (50). Games that exceed this number of moves are declared to be drawn.
 
 \begin{figure}[H]
     \centering
@@ -75,13 +75,13 @@ As previously discussed, Quoridor is played on a square board and each player co
 
 \subsection{Monte Carlo Tree Search}
 
-In principle, Quoridor could be a solved game. However, each position has a staggering number of possible moves which makes a brute force tree search infeasible. The multitude of interacting ``pawn jump'' moves makes a case analysis proof impractically complicated. Instead, we present an AI agent to play the game using a Monte Carlo Tree Search (MCTS) and a neural network based game state evaluation method.
+In principle, Quoridor could be a solved game. However, each position has a staggering number of possible moves which makes a brute force tree search infeasible. The multitude of interacting ``pawn jump'' moves makes a case analysis proof impractically complicated. Instead, we present an AI agent to play the game using a Monte Carlo Tree Search (MCTS) and machine learning based game state evaluation methods.
 
 MCTS is a method of evaluating and iteratively expanding a game tree, the tree of all possible moves from a given position.\cite{russell2020aima} In an environment where exploring every possibility is impossible, this process aims to balance two competing philosophies of position analysis: exploration and exploitation. Exploration involves devoting time to expanding less-searched areas of the game tree. While the initial analysis indicated that these potential moves had little value, it is possible that there are intricacies that make them extremely valuable moves with the right follow-up strategy. Exploration is about finding these hidden moves.
 
 Exploitation, on the other hand, focuses on more deeply expanding a few promising ideas. The first layers of analysis indicate that these moves are encouraging, and a deeper analysis could determine which is the absolute best. With limited computing time and resources, it is impossible to fully explore both exploration and exploitation. MCTS provides a method to find an equilibrium between devoting all the resources to one or the other.
 
-MCTS is performed iteratively. The primary data structure is a tree, with nodes that represent possible game states and edges that represent a possible move. The children of a node are all the possible moves that a player could make given the current position. The root of the tree represents the current game state. A leaf node either represents a terminal state (the game is over) or an unexplored possibility. An iteration of the MCTS expands one leaf node of the tree to consider one more move into the future along that branch of play. Each iteration has four phases: selection, expansion, evaluation, and backpropagation.
+MCTS is performed iteratively. The primary data structure is a tree, with nodes that represent possible game states and edges that represent a possible move. The children of a node are all the possible moves that a player could make from the current position. The root of the tree represents the current game state. A leaf node either represents a terminal state (the game is over) or an unexplored possibility. An iteration of the MCTS expands one leaf node of the tree to consider one more move into the future along that branch of play. Each iteration has four phases: selection, expansion, evaluation, and backpropagation.
 
 \subsubsection{Selection}
 
@@ -100,7 +100,7 @@ In this expression:
     \item $c$ is the exploration parameter. Higher values will prioritize exploration while lower values will emphasize exploitation.
 \end{itemize}
 
-Empirical testing and analysis is usually necessary to select an appropriate value for $c$. If there are any child nodes that are yet to be selected ($n = 0$), one of them will always be selected to avoid divide by zero errors.
+The theoretical ideal value for $c$ is $\sqrt{2}$, and we found this value to work well. If there are any child nodes that are yet to be selected ($n = 0$), one of them will always be selected to avoid divide by zero errors.
 
 \subsubsection{Expansion}
 
@@ -108,45 +108,63 @@ If the selected node is a terminal state (the game is won, lost, or drawn), this
 
 \subsubsection{Evaluation}
 
-Perform an evaluation for the selected node. This step will vary based on the method in use. In general, the evaluation function $f$ is a scalar valued function that maps a game state to an evaluation value $e$ such that $-1 \leq e \leq 1$. Terminal states are always mapped to one of $\{1, -1, 0\}$ depending on the outcome. A good evaluation function would map game states that are more favorable to the current player as higher values, less favorable game states to lower values. 
+Perform an evaluation for the selected node. This step will vary based on the method in use. Evaluation functions $f$ are a scalar valued function that map a game state to an evaluation value $e$ such that $-1 \leq e \leq 1$. Terminal states are always mapped to one of $\{1, -1, 0\}$ depending on the outcome. A good evaluation function maps game states that are more favorable to the current player as higher values and less favorable game states to lower values. 
 
 \subsubsection{Backpropagation}
 
-After the evaluation is determined, it is recursively backpropagated to every parent node. Concretely, the value of $w$ is updated for every node such that $w \gets w + e$. The evaluation is then flipped with the operation $e \gets -e$ and passed to the current node's parent. The evaluation must be flipped because the evaluation is always from the perspective of the player to move, so a strong position for a child is a weak position for its parent. This processes is repeated until the root node is reached.
+After the evaluation is determined, it is recursively backpropagated to every parent node. Concretely, the value of $w$ is updated for every node such that $w \gets w + e$. The evaluation is then flipped with the operation $e \gets -e$ and passed to the current node's parent. The evaluation must be flipped because the evaluation is always from the perspective of the player to move, so a strong position for a child is a weak position for its parent. This process is repeated until the root node is reached.
 
 \subsection{Heuristics}
 
-If a game tree can be fully expanded, one can use trivial algorithms to determine which player can force a win. (The Minimax decision rule is one example.\cite{russell2020aima}) When the game tree cannot be fully expanded, it is necessary to create a heuristic that can determine the value of a position. The accuracy of the heuristic function is directly correlated with the playing strength of the AI agent. Previous research into AI agents for Quoridor gave us insight into designing useful heuristics. \cite{brown2018quoridor} A perfect heuristic that could always determine which player has a forced win would lead to an optimal AI agent. In this project, we compare five distinct heuristic methods:
+If a game tree can be fully expanded, one can use trivial algorithms to determine which player can force a win. (The Minimax decision rule is one example.\cite{russell2020aima}) When the game tree cannot be fully expanded, it is necessary to create a heuristic that can determine the value of a position. The accuracy of the heuristic function is directly correlated with the playing strength of the AI agent. Previous research into AI agents for Quoridor gave us insight into designing useful heuristics. \cite{brown2018quoridor} In this project, we compare five distinct heuristic methods:
 
 \begin{enumerate}
-    \item \textbf{Random roll-outs.} Moves are played randomly until one player wins. The evaluation corresponds to the winning player.
-    \item \textbf{Naive.} Has no knowledge of the game at all. Always gives a neutral evaluation unless a player has successfully won the game. Serves as a baseline for comparison.
-    \item \textbf{Basic.} Gives a basic scaled value based on the Manhattan distance to the goal. Does not take any pathfinding or advanced logic into account.
-    \item \textbf{Convolutional Neural Network.} Uses a convolutional neural network that analyses the board position.
-    \item \textbf{Path Resiliency Random Forest.} Uses random forest decision tree classifier to categorize positions as won, lost, or drawn based on path resiliency features.
+    \item \textbf{Random roll-outs.} Moves are played randomly from the position in the leaf node until one player wins. The evaluation corresponds to the winning player.
+    \item \textbf{Naive.} Has no knowledge of the game at all. Always gives a neutral evaluation ($e = 0$) unless a player has successfully won the game. Serves as a baseline for comparison.
+    \item \textbf{Basic.} Gives scaled difference between the player's Manhattan distances to the goal. Does not take any pathfinding or advanced logic into account.
+    \item \textbf{Convolutional Neural Network.} Uses a convolutional neural network to analyze the board position.
+    \item \textbf{Path Resiliency Random Forest.} Uses random forest decision tree classifier to categorize the position as won, lost, or drawn based on path resiliency features. A scalar is calculated based on the model's confidence in its classification.
 \end{enumerate}
+
+\subsection{Convolutional Neural Network Design}
+One key limitation we encountered throughout the project stemmed from the rule that requires both players to be able to reach their goal row after each fence placement. This necessitated running a breadth-first search (BFS) for each player for every possible fence placement. Since random rollout takes a lot of time to actually win, and there are many possible fence placements that the player can do, this greatly bottlenecked the number of MCTS iterations which could be performed.
+
+To address this inefficiency, we aimed to replace the rollout function with a trained model capable of serving as an accurate evaluation function with less execution time. We chose a convolutional neural network (CNN) for this task due to its strength in capturing spatial patterns, such as pawn positions and wall configurations, independent of their locations on the board. CNNs have been successfully used to design AI agents for other board games, most notably Go.\cite{silver2016go} This characteristic makes CNNs particularly well-suited for structured board games. The architecture of our CNN is shown in Fig.~\ref{fig:cnn_arch}. The input consists of a $5 \times 5$ board represented across four channels: the positions of both pawns, and the locations of horizontal and vertical walls. The network includes three convolutional layers with ReLU activations, followed by fully connected layers. These layers map the extracted features to a single scalar output between $-1$ and $1$, which estimates how favorable the current position is for player 1.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{cnn_arch.png}
+    \caption{\textbf{CNN architecture.} Layer depth is not drawn to scale. Visualization created with open source tools.\cite{lenail2019nnsvg}}
+    \label{fig:cnn_arch}
+\end{figure}
+\subsection{Training Data Generation}
+
+To use machine learning methods to evaluate board states, we needed to  generate training examples. These training examples would include the path resiliency features, the board state, and a ``ground truth'' value of the position. To generate training examples, we used a simple agent to play hundreds of games against itself. The agent selected the first four moves randomly in order to create a diversity of board positions. After the fourth move the agent performed 1000 MCTS iterations using the basic heuristic for move selection (Manhattan distance). This was a good generation technique since we found a sufficient number of iterations allows any MCTS model to perform well (Section~\ref{sec:moreitersisbetter}). After the game was complete, each board state played during the game was labeled with the player that won, or zero if the game ended in a tie. This set of labeled board states was aggregated and used to train both the decision tree and convolutional net.
+
+We trained the CNN using 20,000 samples of only the board state. We used a standard training-validation split and trained until the loss stopped decreasing. We trained the random forest with 3,000 samples of only the resiliency features. With a uniquely generated test set, it achieved a accuracy of 0.81 when classifying each position as won, lost, or drawn.
+
 
 \subsection{Shortest Path Resiliency}
 
-The player with the shortest path to the goal will win without intervention by their opponent. The primary intervention is fences, which can be placed to block the previously existing shortest path between a player and the goal region. The essence of a good Quoridor strategy is determining which fence placements best block the opponent. Some placements will force a longer detour than others, and others will impede the player placing them more than their opponent. With this in mind, identifying which player has good fence placements available may be an efficient way to evaluate a given game position.  
+The player with the shortest path to the goal will win without intervention from their opponent. The primary intervention is fences, which can be placed to block the previously existing shortest path between a player and the goal region. The essence of a good Quoridor strategy is determining which fence placements best block the opponent. Some placements will force a longer detour than others, but some will impede the player placing them more than their opponent. With this in mind, identifying which player has good fence placements available is an efficient way to evaluate a position.  
 
-A player has a good fence placement when it drastically increases the shortest path of their opponent. In general a fence placement will only change the shortest path by the one or two moves it takes for the player move around the fence. However, in some cases, a fence placement will completely cut off a whole portion of the board from a player and force them to take a completely different and perhaps longer path to the end. Shortest path resiliency is a technique which aims to find bottlenecks: fence placements that will optimally disrupt the opponent while providing minimal disruption to the current player's path. In identifying the bottlenecks, we are able to generate resiliency scores which provide insight into how fragile a player's shortest path is to wall placements. These scores are used as features for a random forest decision tree which evaluates board states.
+A good fence placement will drastically increase the shortest path of the opponent. In general fence placements will only change the shortest path by the one or two moves as the player steps around the fence. In some cases, a fence placement will completely cut off a whole portion of the board from a player and force them to take a completely different path to the end. Shortest path resiliency is a technique which aims to find bottlenecks: fence placements that will optimally disrupt the opponent while providing minimal disruption to the current player's path. In identifying the bottlenecks, we are able to generate resiliency scores which provide insight into how fragile a player's shortest path. These scores are used as features for a random forest decision tree which evaluates board states.
 
-The first step is to create a Resiliency Graph for each player. ($R_1$, $R_2$) This algorithm iteratively searches for shortest paths and then updates graph weights. After several iterations, edges that are difficult to avoid will accumulate extreme weight values, and edges that have equivalent alternate routes will have the additional weight distributed amongst them. This means that an edge with a high value represents a place were a wall could have a huge impact on the player's path. For all experiments, $\delta$ was set to 2. Due to the discrete and uniform nature of these edge weight modifications, the number of iterations is not relevant beyond a sufficient threshold ($=25$, in our testing).
+The first step is to create a resiliency graph ($R_1$, $R_2$) for each player.  This algorithm iteratively searches for shortest paths and then increases weights of edges along the shortest path by a constant value $\delta$. After several iterations, edges that are difficult to avoid will accumulate large weight values, and edges that have equivalent alternate routes will have the additional weight distributed amongst them. This means that an edge with a high value represents a place were a wall could have a huge impact on the player's path. For all experiments, $\delta$ was set to 2. Due to the discrete and uniform nature of these edge weight modifications, the number of iterations is not relevant beyond a sufficient threshold ($=25$, in our testing).
 \begin{algorithm}
 \caption{Construct Resiliency Graphs}
 \begin{algorithmic}[1]
 \For{each player $p \in \{1, 2\}$}
     \State Construct an undirected graph $R_p = (V, E)$:
     \State \hspace{1em} Create a node $v \in V$ for each board square
-    \State \hspace{1em} Add edge $(u, v) \in E$ if $u$ and $v$ are adjacent and a could be blocked by a wall placement
+    \State \hspace{1em} Add edge $(u, v) \in E$ if $u$ and $v$ are adjacent and there is not a fence between $u$ and $v$
+     \State \hspace{1em} Set initial weights $w(e) \gets 1$ for all $e \in E$
     \State \hspace{1em} Add a terminal node $t$ to $V$
-    \State \hspace{1em} For each goal square $g$ of player $p$, add edge $(g, t)$
-    \State \hspace{1em} Set initial weights $w(e) \gets 1$ for all $e \in E$
+    \State \hspace{1em} For each goal square $g$ of player $p$, add edge $(g, t)$ with weight 0
     \For{$i = 1$ to $25$}
-        \State Compute the shortest path $\pi$ from player’s current position $s_p$ to $t$ using Dijkstra's algorithm
+        \State Compute the shortest path $\pi$ from player's current position $s_p$ to $t$ using Dijkstra's algorithm
         \For{each edge $e \in \pi$}
-            \State $w(e) \gets w(e) + \delta$
+            \State $w(e) \gets w(e) + \delta$ if there exists a valid fence placement to block this move
         \EndFor
     \EndFor
 \EndFor
@@ -154,7 +172,7 @@ The first step is to create a Resiliency Graph for each player. ($R_1$, $R_2$) T
 \end{algorithmic}
 \end{algorithm}
 \FloatBarrier
-Next, the Resiliency Graph is used to generate a Liability graph for each player. ($L_1$, $L_2$) The liability graph is very similar to the resiliency graph, but it takes into account the fact that an edge that is crucial in blocking the opponents path may also block the player's path. This is handled by computing relative weights.  
+The resiliency graph is used to generate a liability graphs ($L_1$, $L_2$) for each player. The liability graph is similar to the resiliency graph, but it recognizes that an edge crucial to blocking the opponents path may also block the player's own path. This is handled by computing weight differences.  
 
 \begin{algorithm}
 \caption{Construct Liability Graphs}
@@ -176,7 +194,7 @@ Next, the Resiliency Graph is used to generate a Liability graph for each player
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{path_figure.png}
-    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency graphs of players 1 and 2, respectively. Lines between board squares represent edges. The color of the edge represents the weight after the designated number of pathfinding iterations. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Liability Graph for player 1. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
+    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency graphs of players 1 and 2, respectively. Lines between board squares represent edges. The color of the edge represents the weight after the resiliency algorithm. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Liability graph for player 1, as calculated by algorithm 2. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
     \label{fig:resiliency}
 \end{figure}
 
@@ -184,10 +202,10 @@ Next, the Resiliency Graph is used to generate a Liability graph for each player
 From these graphs, we compute several scalar-valued features for the decision tree. Each feature is calculated twice: once from each player's perspective. Thus, the input to the decision tree is a 10-dimensional feature vector. 
 
 \begin{enumerate}
-    \item \textbf{Path resiliency.} The distance of the shortest path in the Resiliency Graph from the players current location to the terminal node. The higher the path resiliency, the less resilient the path is to wall placements. Fig.~\ref{fig:resiliency}B/C.
-    \item \textbf{Path liability.} The distance of the shortest path in the Liability Graph from the players current location to the terminal node. The higher the path liability, the less resilient player's shortest path is to wall placements in comparison to the opponent. (Fig.~\ref{fig:resiliency}D).
-    \item \textbf{Maximum liability.} The maximum weight value in the player's Liability Graph. This identifies if there exists one major bottleneck.
-    \item \textbf{Shortest path distance.} The player's shortest path to the goal region on the current board, not considering wall placements. This does not rely on resiliency or liability graphs.
+    \item \textbf{Path resiliency.} The distance of the shortest path in the resiliency graph from the player's current location to the terminal node. When this value is higher, the path is less resilient to wall placements (Fig.~\ref{fig:resiliency}B,C).
+    \item \textbf{Path liability.} The distance of the shortest path in the liability graph from the player's current location to the goal. The higher the path liability, the less resilient player's shortest path is to wall placements in comparison to the opponent (Fig.~\ref{fig:resiliency}D).
+    \item \textbf{Maximum liability.} The maximum weight value in the player's liability graph. This identifies if there exists one major bottleneck.
+    \item \textbf{Shortest path distance.} The distance of the player's shortest path to the goal region, not considering future wall placements. This does not rely on resiliency or liability graphs.
     \item \textbf{Fence count.} The number of remaining fences the player has available to place.
 \end{enumerate}
 
@@ -204,23 +222,6 @@ The random forest classifies positions as either won, lost, or drawn, with certa
 %     \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
 %     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D. 
 % \end{enumerate}
-\subsection{Convolutional Neural Network Design}
-One key limitation we encountered throughout the project stemmed from the rule that requires both players to be able to reach their goal row after each fence placement. This necessitated running a breadth-first search (BFS) for each player for every possible fence placement. Since random rollout takes a lot of time to actually win, and there are many possible fence placements that the player can do, this greatly bottlenecked the number of MCTS iterations which could be performed.
-
-To address this inefficiency, we aimed to replace the rollout function with a trained model capable of serving as an accurate evaluation function with less execution time. We chose a convolutional neural network (CNN) for this task due to its strength in capturing spatial patterns, such as pawn positions and wall configurations, independent of their locations on the board. CNNs have been successfully used to design AI agents for other board games, most notably Go.\cite{silver2016go} This characteristic makes CNNs particularly well-suited for structured board games. The architecture of our CNN is shown in Fig.~\ref{fig:cnn_arch}. The input consists of a $5 \times 5$ board represented across four channels: the positions of both pawns, and the locations of horizontal and vertical walls. The network includes three convolutional layers with ReLU activations, followed by fully connected layers. These layers map the extracted features to a single scalar output between $-1$ and $1$, which estimates how favorable the current position is for player 1.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\linewidth]{cnn_arch.png}
-    \caption{\textbf{CNN architecture.} Layer depth is not drawn to scale. Visualization created with open source tools.\cite{lenail2019nnsvg}}
-    \label{fig:cnn_arch}
-\end{figure}
-\subsection{Training Data Generation}
-
-To use machine learning methods to evaluate board states, we needed to  generate training examples. These training examples would include the path resiliency features, the board state, and a ``ground truth'' value of the position. To generate training examples, we used a simple agent to play hundreds of games against itself. The agent selected the first four moves randomly in order to create a diversity of board positions. After the fourth move the agent performed 1000 MCTS iterations using the basic heuristic for move selection (Manhattan distance). This was a good generation technique since we found a sufficient number of iterations allows any MCTS model to perform well (Section~\ref{sec:moreitersisbetter}). After the game was complete, each board state played during the game was labeled with the player that won, or zero if the game ended in a tie. This set of labeled board states was aggregated and used to train both the decision tree and convolutional net.
-
-We trained the CNN using 20,000 samples of only the board state. We used a standard training-validation split and trained until the loss stopped decreasing. We trained the random forest with 3,000 samples of only the resiliency features. With a uniquely generated test set, it achieved a accuracy of 0.81 when classifying each position as won, lost, or drawn.
-
 
 \section{Evaluation}
 
