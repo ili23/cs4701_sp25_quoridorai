@@ -133,7 +133,7 @@ The player with the shortest path to the goal will win without intervention by t
 
 A player has a good fence placement when it drastically increases the shortest path of their oppenent. In general a fence placement will only change the shortest path by the one or two moves it takes for the player move around the fence. However, in some cases, a fence placement will completely cut off a whole portion of the board from a player and force them to take a completely different and perhaps longer path to the end. Shortest path resiliency is a technique which aims to find bottlenecks: fence placements that will optimally disrupt the opponent while providing minimal disruption to the current player's path. In identifying the bottlenecks, we are able to generate resiliency scores which provide insight into how fragile a player's shortest path is to wall placements. These scores are used as features for a random forest decision tree which evaluates board states.
 
-The first step is to create a resiliency graph for each player. ($R_1$, $R_2$) This algorithm iteratively searches for shortest paths and then updates graph weights. After several iterations, edges that are difficult to avoid will accumulate extreme weight values, and edges that have equivalent alternate routes will have the additional weight distributed amongst them. This means that an edge with a high value represents a place were a wall could have a huge impact on the player's path.
+The first step is to create a Resiliency Graph for each player. ($R_1$, $R_2$) This algorithm iteratively searches for shortest paths and then updates graph weights. After several iterations, edges that are difficult to avoid will accumulate extreme weight values, and edges that have equivalent alternate routes will have the additional weight distributed amongst them. This means that an edge with a high value represents a place were a wall could have a huge impact on the player's path. For all experiments, $\delta$ was set to 2. Due to the discrete and uniform nature of these edge weight modifications, the number of iterations is not relevant beyond a sufficient threshold ($=25$, in our testing).
 
 
 \begin{algorithm}
@@ -142,7 +142,7 @@ The first step is to create a resiliency graph for each player. ($R_1$, $R_2$) T
 \For{each player $p \in \{1, 2\}$}
     \State Construct an undirected graph $R_p = (V, E)$:
     \State \hspace{1em} Create a node $v \in V$ for each board square
-    \State \hspace{1em} Add edge $(u, v) \in E$ if $u$ and $v$ are adjacent and not separated by a wall
+    \State \hspace{1em} Add edge $(u, v) \in E$ if $u$ and $v$ are adjacent and a could be blocked by a wall placement
     \State \hspace{1em} Add a terminal node $t$ to $V$
     \State \hspace{1em} For each goal square $g$ of player $p$, add edge $(g, t)$
     \State \hspace{1em} Set initial weights $w(e) \gets 1$ for all $e \in E$
@@ -157,12 +157,10 @@ The first step is to create a resiliency graph for each player. ($R_1$, $R_2$) T
 \end{algorithmic}
 \end{algorithm}
 
-
-
-Next, the resiliency graph is used to generate a liability graph for each player. ($L_1$, $L_2$) The liability graph is very similar to the resiliency graph, but it takes into account the fact that an edge that is crucial in blocking the opponents path may also block the player's path. This is handled by computing relative weights.  
+Next, the Resiliency Graph is used to generate a Liability Graph for each player. ($L_1$, $L_2$) The liability graph is very similar to the resiliency graph, but it takes into account the fact that an edge that is crucial in blocking the opponents path may also block the player's path. This is handled by computing relative weights.  
 
 \begin{algorithm}
-\caption{Construct liability Graphs}
+\caption{Construct Liability Graphs}
 \begin{algorithmic}[1]
 \For{each player $p \in \{1, 2\}$}
     \State $L_p \gets R_p$
@@ -173,39 +171,29 @@ Next, the resiliency graph is used to generate a liability graph for each player
         \State Set the weight of $(u, v)$ in $L_p$ to $\max(0, w_p - w_o)$
     \EndFor
 \EndFor
-\State \Return $(L_1, L_2)$
+\State \Return $L_1, L_2$
 \end{algorithmic}
 \end{algorithm}
 
 
-This technique takes the board position and constructs a graph with each board space represented as a node. Path resiliency is calculated independently for each player. Weighted, undirected edges are added between adjacent board positions that are not separated by a fence. These represent valid pawn moves. Each edge is initialized to the same starting weight $w_{init}$.
-(For pathfinding simplicity, there is a final node that is connected to all of the nodes in the goal area by an edge of weight 0. Pathfinding algorithms can target this node, and in doing so, find an optimal path to any part of the goal area.) % TODO: Move this to a figure caption somehow? It's too wordy for the main paragraph
-Then, a two step iterative process begins:
-
-
-
-This technique shines when there are many paths to the goal for both players, and these paths may overlap (Fig.~\ref{fig:resiliency}A). After several iterations, edges that are difficult to avoid will accumulate extreme weight values, and edges that have equivalent alternate routes will have the additional weight distributed amongst them (Fig.~\ref{fig:resiliency}B-C). Edges with high weights are good targets for fence placements. However, fences block the player placing them as well as their opponent. We aim to encode the viability of blocking an edge by subtracting the resiliency weights of the current player from the opponents (Fig.~\ref{fig:resiliency}D).
-
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{path_figure.png}
-    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency weights of players 1 and 2, respectively. Lines between board squares represent edges. The color of the edge represents the weight after the designated number of pathfinding iterations. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Calculated as player 1 resiliency weights minus player 2 resiliency weights. A high values indicates that the edge is very damaging to player 1 when blocked, while not damaging to player 2. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
+    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency graphs of players 1 and 2, respectively. Lines between board squares represent edges. The color of the edge represents the weight after the designated number of pathfinding iterations. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Liability Graph for player 1. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
     \label{fig:resiliency}
 \end{figure}
 
-Due to the discrete and uniform nature of these edge weight modifications, the number of iterations is not relevant beyond a sufficient threshold ($=25$, in our testing). After sufficient iterations, all the resulting weights are nearly equivalent up to scale.
 
-There are several scalar-valued features we create for our decision tree using this process. Each feature is calculated twice: once from each player's perspective. Thus, the input vector to the decision tree is a 10 dimensional vector.
+From these graphs, we compute several scalar-valued features for the decision tree. Each feature is calculated twice: once from each player's perspective. Thus, the input to the decision tree is a 10 dimensional feature vector. 
 
 \begin{enumerate}
-    \item \textbf{Original shortest path distance.} The distance between the pawn and the goal, without considering future fence placements.
-    \item \textbf{Path resiliency.} The distance of the shortest path after completing the path finding and edge weight modification iterations. If there are many paths from the current location to the goal, the added edge weight will be distributed across these paths, and this feature will be lower. If there are few paths for a player to take, they will accumulate a large amount of weight. This feature encodes the calculation of Fig.~\ref{fig:resiliency}B/C.
-    \item \textbf{Fence count.} The number of fences that a player is allowed to place.
-    \item \textbf{Path liability.} Encodes the amount to which both players need the same paths to win. Encodes the shortest distance along the liability graph (Fig.~\ref{fig:resiliency}D).
-    \item \textbf{Maximum liability.} Encodes the maximum weight value in the liability graph.
+    \item \textbf{Path resiliency.} The distance of the shortest path in the Resiliency Graph from the players current location to the terminal node. The higher the path resiliency, the less resilient the path is to wall placements. Fig.~\ref{fig:resiliency}B/C.
+    \item \textbf{Path liability.} The distance of the shortest path in the Liability Graph from the players current location to the terminal node. The higher the path liability, the less resilient player's shortest path is to wall placements in comparison to the oppenent. (Fig.~\ref{fig:resiliency}D).
+    \item \textbf{Maximum liability.} The maximum weight value in the player's Liability Graph. This identifies if there exists one major bottleneck.
+    \item \textbf{Shortest path distance.} The player's shortest path to the goal region on the current board, not considering wall placements. This does not rely on resiliency or liability graphs.
+    \item \textbf{Fence count.} The number of remaining fences the player has available to place.
 \end{enumerate}
 
-In our final implementation, only edges that can be blocked by valid fence placements will accumulate weight. This prevents the system from recognizing a bottleneck that could not legally be obstructed.
 
 % \begin{enumerate}
 %     \item \textbf{Scaled resiliency distance.} This scalar encodes the information of Fig.~\ref{fig:resiliency}B. It is the percentage of the total weight that is included in the shortest path from the player to the goal after all of the iterations are complete.
