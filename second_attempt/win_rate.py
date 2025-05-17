@@ -41,7 +41,7 @@ def render(ax, path, title, legend=False):
     ax.set_xscale('log')
 
 
-render(axs[0], "Figure_data/Win_rate/naive.csv", "(A) Naive")
+render(axs[0], "Figure_data/Win_rate/naive.csv", "(A) Naive", True)
 render(axs[1], "Figure_data/Win_rate/basic.csv", "(B) Basic")
 render(axs[2], "Figure_data/Win_rate/cnn.csv", "(C) CNN")
 render(axs[3], "Figure_data/Win_rate/tree.csv", "(D) Random forest")
