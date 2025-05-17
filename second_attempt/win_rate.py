@@ -44,7 +44,7 @@ def render(ax, path, title, legend=False):
 render(axs[0], "Figure_data/Win_rate/naive.csv", "(A) Naive")
 render(axs[1], "Figure_data/Win_rate/basic.csv", "(B) Basic")
 render(axs[2], "Figure_data/Win_rate/cnn.csv", "(C) CNN")
-# render(axs[3], "Figure_data/Win_rate/tree.csv", "(D) Random forest")
+render(axs[3], "Figure_data/Win_rate/tree.csv", "(D) Random forest")
 plt.tight_layout()
 # plt.show()
 

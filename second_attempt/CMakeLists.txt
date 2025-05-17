@@ -13,10 +13,10 @@ if (FALSE)
     set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} ${ASAN_FLAGS}")
 endif()
 
-option(USE_TORCH "Enable Torch support" ON)
+option(USE_TORCH "Enable Torch support" OFF)
 
 # Conditionally set CMAKE_PREFIX_PATH and find_package
-if(TRUE)
+if(FALSE)
     set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libtorch")
     find_package(Torch REQUIRED)
     message(STATUS "Found Torch: ${TORCH_INCLUDE_DIRS}")
@@ -66,7 +66,7 @@ add_executable(quoridor ${SOURCES})
 # target_compile_options(quoridor PRIVATE -Wall -Wextra -Wuninitialized)
 
 # Use the new TRUE option consistently
-if(TRUE)
+if(FALSE)
     # Simple and direct approach to linking Torch
     target_link_libraries(quoridor ${TORCH_LIBRARIES})
     

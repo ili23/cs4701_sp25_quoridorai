@@ -531,7 +531,8 @@ float Gamestate::model_evaluate(Gamestate& g, bool smart_eval = false) {
   }
 
 #ifndef NO_MODEL
-  return (g.p1Turn ? -1 : 1) * tree_eval(g.resiliency_vector());
+  std::cout << "Tree eval" << std::endl;
+  return (g.p1Turn ? 1: -1) * tree_eval(g.resiliency_vector());
 #endif
 
 #ifndef TORCH
