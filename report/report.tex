@@ -139,13 +139,13 @@ This technique shines when there are many paths to the goal for both players, an
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{path_figure.png}
-    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency weights of players 1 and 2, respectively. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Calculated as player 1 resiliency weights minus player 2 resiliency weights. A high values indicates that the edge is very damaging to player 1 when blocked, while not damaging to player 2. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
+    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency weights of players 1 and 2, respectively. Lines between board squares represent edges. The color of the edge represents the weight after the designated number of pathfinding iterations. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Calculated as player 1 resiliency weights minus player 2 resiliency weights. A high values indicates that the edge is very damaging to player 1 when blocked, while not damaging to player 2. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
     \label{fig:resiliency}
 \end{figure}
 
 Due to the discrete and uniform nature of these edge weight modifications, the number of iterations is not relevant beyond a sufficient threshold ($=25$, in our testing). After sufficient iterations, all the resulting weights are nearly equivalent up to scale.
 
-There are several features we create for our decision tree using this process. Each feature is calculated twice: once from each player's perspective.
+There are several scalar-valued features we create for our decision tree using this process. Each feature is calculated twice: once from each player's perspective. Thus, the input vector to the decision tree is a 10 dimensional vector.
 
 \begin{enumerate}
     \item \textbf{Original shortest path distance.} The distance between the pawn and the goal, without considering future fence placements.
@@ -154,6 +154,8 @@ There are several features we create for our decision tree using this process. E
     \item \textbf{Path liability.} Encodes the amount to which both players need the same paths to win. Encodes the shortest distance along the liability graph (Fig.~\ref{fig:resiliency}D).
     \item \textbf{Maximum liability.} Encodes the maximum weight value in the liability graph.
 \end{enumerate}
+
+In our final implementation, only edges that can be blocked by valid fence placements will accumulate weight. This prevents the system from recognizing a bottleneck that could not legally be obstructed.
 
 % \begin{enumerate}
 %     \item \textbf{Scaled resiliency distance.} This scalar encodes the information of Fig.~\ref{fig:resiliency}B. It is the percentage of the total weight that is included in the shortest path from the player to the goal after all of the iterations are complete.
