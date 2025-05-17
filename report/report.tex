@@ -165,7 +165,7 @@ In our final implementation, only edges that can be blocked by valid fence place
 %     \item \textbf{Raw resiliency distance.} This scalar is similar to (1), but it does not depend on the amount of total weight added during the iterative phase. It is calculated as the total weight along the shortest path to the goal divided by the number of iterations.
 %     \item \textbf{Scaled targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (1).
 %     \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
-%     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
+%     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D. 
 % \end{enumerate}
 \subsection{Convolutional Neural Network to Replace the Random Roll-Outs}
 To improve the speed of the evaluation function, we implemented a convolutional neural network (CNN) to replace the random roll-outs. We chose to use a CNN since we wanted our model to learn and recognize pawn and wall patterns regardless of where it was on the board. 

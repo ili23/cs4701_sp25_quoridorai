@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 fig, axs = plt.subplots(1, 4, figsize=(16, 3.75))
 
+
 def render(ax, path, title, legend=False):
     data = np.genfromtxt(path, delimiter=",", skip_header=1)
 
@@ -22,10 +23,13 @@ def render(ax, path, title, legend=False):
     ax.fill_between(x, y_wins_pct, 0, color='tab:orange', alpha=0.5)
 
     ax.plot(x, y_wins_pct + y_draws_pct, color="tab:blue", label="Draws")
-    ax.fill_between(x, y_wins_pct + y_draws_pct, y_wins_pct, color='tab:blue', alpha=0.5)
+    ax.fill_between(x, y_wins_pct + y_draws_pct,
+                    y_wins_pct, color='tab:blue', alpha=0.5)
 
-    ax.plot(x, y_wins_pct + y_draws_pct + y_losses_pct, color="tab:green", label="Losses")
-    ax.fill_between(x, y_wins_pct + y_draws_pct + y_losses_pct, y_wins_pct + y_draws_pct, color='tab:green', alpha=0.5)
+    ax.plot(x, y_wins_pct + y_draws_pct + y_losses_pct,
+            color="tab:green", label="Losses")
+    ax.fill_between(x, y_wins_pct + y_draws_pct + y_losses_pct,
+                    y_wins_pct + y_draws_pct, color='tab:green', alpha=0.5)
 
     ax.set_title(title, fontweight="bold")
     if legend:
@@ -36,8 +40,9 @@ def render(ax, path, title, legend=False):
     ax.set_yticks((0, 50, 100))
     ax.set_xscale('log')
 
+
 render(axs[0], "Figure_data/Win_rate/naive.csv", "(A) Naive")
-# render(axs[1], "Figure_data/Win_rate/basic.csv", "(B) Basic")
+render(axs[1], "Figure_data/Win_rate/basic.csv", "(B) Basic")
 render(axs[2], "Figure_data/Win_rate/cnn.csv", "(C) CNN")
 # render(axs[3], "Figure_data/Win_rate/tree.csv", "(D) Random forest")
 plt.tight_layout()

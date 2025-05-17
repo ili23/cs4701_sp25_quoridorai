@@ -283,7 +283,7 @@ def render(
             fill=False,
             edgecolor="tab:green",
             alpha=0.8,
-            linestyle="none",
+            linestyle=None,
         )
         rect2 = patches.Rectangle(
             (0, 4),
@@ -293,7 +293,7 @@ def render(
             fill=False,
             edgecolor="tab:red",
             alpha=0.8,
-            linestyle="none",
+            linestyle=None,
         )
         ax.add_patch(rect)
         ax.add_patch(rect2)
@@ -311,7 +311,7 @@ for start in graph:
 
 
 # Step 3: Draw board
-fig, axs = plt.subplots(2, 3, figsize=(12, 3.75 * 2))
+fig, axs = plt.subplots(2, 4, figsize=(16, 3.75 * 2))
 
 
 
@@ -401,26 +401,38 @@ if __name__ == "__main__":
     )
     render_hist(
         axs[0, 2],
+        "Figure_Data/MCTS_Distr/cnn_histogram.csv",
+        "(C) CNN move evaluations",
+        True,
+    )
+    render_hist(
+        axs[0, 3],
         "Figure_Data/MCTS_Distr/e_forest_move_distr.csv",
-        "(C) Forest move evaluations",
+        "(D) Forest move evaluations",
         False,
     )
 
     graph_eval_data(
         axs[1, 0],
         "Figure_Data/MCTS_Distr/c_naive_eval_over_time.csv",
-        "(D) Naive position evaluation",
+        "(E) Naive position evaluation",
         True,
     )
     graph_eval_data(
         axs[1, 1],
         "Figure_Data/MCTS_Distr/d_basic_eval_over_time.csv",
-        "(E) Basic position evaluation",
+        "(F) Basic position evaluation",
     )
     graph_eval_data(
         axs[1, 2],
+        "Figure_Data/MCTS_Distr/cnn_line.csv",
+        "(G) CNN position evaluation",
+        True,
+    )
+    graph_eval_data(
+        axs[1, 3],
         "Figure_Data/MCTS_Distr/f_forest_eval_over_time.csv",
-        "(F) Forest position evaluation",
+        "(H) Forest position evaluation",
         True,
     )
 

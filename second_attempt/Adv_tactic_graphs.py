@@ -43,7 +43,7 @@ if __name__ == "__main__":
     render_hist(
         axs[0, 2],
         "Figure_Data/Adv_tactic/e_forest_move_distr.csv",
-       "(C) Forest move evaluations",
+       "(D) Forest move evaluations",
         False,
         winning_moves,
     )
@@ -56,21 +56,38 @@ if __name__ == "__main__":
         winning_moves,
     )
 
+    render_hist(
+        axs[0, 3],
+        "Figure_Data/Adv_tactic/cnn_histogram.csv",
+         "(C) CNN move evaluations",
+        
+        False,
+        winning_moves,
+    )
+
     graph_eval_data(
         axs[1, 0],
         "Figure_Data/Adv_tactic/c_naive_eval_over_time.csv",
-        "(D) Naive position evaluation",
+        "(E) Naive position evaluation",
         True,
     )
+
+    graph_eval_data(
+        axs[1, 2],
+        "Figure_Data/Adv_tactic/cnn_line.csv",
+        "(G) CNN position evaluation",
+        True,
+    )
+
     graph_eval_data(
         axs[1, 1],
         "Figure_Data/Adv_tactic/d_basic_eval_over_time.csv",
-        "(E) Basic position evaluation",
+        "(F) Basic position evaluation",
     )
     graph_eval_data(
-        axs[1, 2],
+        axs[1, 3],
         "Figure_Data/Adv_tactic/f_forest_eval_over_time.csv",
-        "(F) Forest position evaluation",
+        "(H) Forest position evaluation",
         True,
     )
 
