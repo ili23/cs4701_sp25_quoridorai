@@ -126,8 +126,8 @@ void generateHistogramAndMCTSEval() {
   gs.displayBoard();
 
   std::ofstream data_evals, move_evals;
-  data_evals.open("../Figure_Data/Adv_tactic/cnn_line.csv");
-  move_evals.open("../Figure_Data/Adv_tactic/cnn_histogram.csv");
+  data_evals.open("../Figure_Data/MCTS_Distr/cnn_line.csv");
+  move_evals.open("../Figure_Data/MCTS_Distr/cnn_histogram.csv");
 
   MCTS tree;
 
@@ -249,9 +249,9 @@ int main(int argc, const char* argv[]) {
   // generateResilienceTrainingData();
 
   // Generating histogram (from fixed positions)
-  // generateHistogramAndMCTSEval();
+  generateHistogramAndMCTSEval();
 
-  return generateWinRatio(argc, argv);
+  // return generateWinRatio(argc, argv);
 };
 
 // #ifdef TORCH
