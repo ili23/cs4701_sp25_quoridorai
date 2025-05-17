@@ -15,20 +15,32 @@ from copy import deepcopy
 
 board_size = 5
 
-pawn1_pos = (1, 2)
-pawn2_pos = (4, 1)
-
+pawn1_pos = (2, 4)
+pawn2_pos = (2, 0)
 fences = [
-    (0, 3, "v"),
-    (0, 4, "v"),
-    (1, 2, "v"),
-    (1, 3, "v"),
-    (2, 3, "v"),
-    (2, 4, "v"),
-    (3, 1, "v"),
-    (3, 3, "h"),
-    (3, 2, "v"),
+    (2, 0, "h"),
+    (1, 0, "h"),
+    (2, 0, "h"),
+    (2, 1, "v"),
+    (2, 2, "v"),
+    (3, 3, "v"),
+    (3, 4, "v"),
 ]
+
+# pawn1_pos = (1, 2)
+# pawn2_pos = (4, 1)
+
+# fences = [
+#     (0, 3, "v"),
+#     (0, 4, "v"),
+#     (1, 2, "v"),
+#     (1, 3, "v"),
+#     (2, 3, "v"),
+#     (2, 4, "v"),
+#     (3, 1, "v"),
+#     (3, 3, "h"),
+#     (3, 2, "v"),
+# ]
 
 # Step 1: Build graph with weights
 graph = defaultdict(list)
@@ -301,17 +313,7 @@ for start in graph:
 # Step 3: Draw board
 fig, axs = plt.subplots(2, 3, figsize=(12, 3.75 * 2))
 
-pawn1_pos = (2, 4)
-pawn2_pos = (2, 0)
-fences = [
-    (2, 0, "h"),
-    (1, 0, "h"),
-    (2, 0, "h"),
-    (2, 1, "v"),
-    (2, 2, "v"),
-    (3, 3, "v"),
-    (3, 4, "v"),
-]
+
 
 # PUT DATA ABOUT DISTRIBUTION HERE
 
@@ -424,5 +426,5 @@ if __name__ == "__main__":
 
     plt.tight_layout()
 
-    # plt.show()
-    plt.savefig("../report/MCTS_eval.png", dpi=400)
+    plt.show()
+    # plt.savefig("../report/MCTS_eval.png", dpi=400)

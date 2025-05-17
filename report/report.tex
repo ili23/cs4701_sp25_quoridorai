@@ -27,7 +27,7 @@
 % \usepackage[superscript,sort&compress]{natbib}
 
 % Title
-\title{\bfseries Using Monte Carlo Tree Search and Neural Networks in an AI Agent to Play Quoridor}
+\title{\bfseries Using Monte Carlo Tree Search and Random Forest Decision Trees in an AI Agent to Play Quoridor}
 \author{
     Iram Liu, Jacob Groner, Mason Raffo
 }
@@ -112,14 +112,12 @@ After the evaluation is determined, it is recursively backpropagated to every pa
 If a game tree can be fully expanded, one can use trivial algorithms to determine which player can force a win. (The Minimax decision rule is one example.\textbf{CITATION HERE}) When the game tree cannot be fully expanded, it is necessary to create a heuristic that can determine the value of a position. The accuracy of the heuristic function is directly correlated with the playing strength of the AI agent. A perfect heuristic that could always determine which player has forced win would lead to an optimal AI agent. In this project, we compare five distinct heuristic methods:
 
 \begin{enumerate}
-    \item \textbf{Random roll-outs.} Moves are played randomly until one player wins. The evaluation corresponds to the winning player.
+    \item \textbf{Random roll-outs.} Moves are played randomly until one player wins. The evaluation corresponds to the winning player. We quickly abandoned this method as rollouts required too much computation time and were mostly draws.
     \item \textbf{Naive.} Has no knowledge of the game at all. Always gives a neural evaluation unless a player has successfully won the game. Serves as a baseline for comparison.
     \item \textbf{Basic.} Gives a basic scaled value based on the Manhattan distance to the goal. Does not take any pathfinding or advanced logic into account.
     \item \textbf{Convolutional Neural Network.} Uses a convolutional neural network that analyses the board position.
-    \item \textbf{Path Resiliency Neural Network.} Uses an MLP that has advanced knowledge of potential paths to the goal encoded as features.
+    \item \textbf{Path Resiliency Random Forest.} Uses random forest decision tree classifier to categorize positions as won, lost, or drawn based on path resiliency features.
 \end{enumerate}
-
-\subsection{Convolutional Neural Network Design}
 
 \subsection{Shortest Path Resiliency}
 
@@ -147,17 +145,28 @@ This technique shines when there are many paths to the goal for both players, an
 
 Due to the discrete and uniform nature of these edge weight modifications, the number of iterations is not relevant beyond a sufficient threshold ($=25$, in our testing). After sufficient iterations, all the resulting weights are nearly equivalent up to scale.
 
-There are several features we create for our neural network using this process. Each feature is calculated twice: once from each player's perspective.
+There are several features we create for our decision tree using this process. Each feature is calculated twice: once from each player's perspective.
 
 \begin{enumerate}
-    \item \textbf{Scaled resiliency distance.} This scalar encodes the information of Fig.~\ref{fig:resiliency}B. It is the percentage of the total weight that is included in the shortest path from the player to the goal after all of the iterations are complete.
-    \item \textbf{Raw resiliency distance.} This scalar is similar to (1), but it does not depend on the amount of total weight added during the iterative phase. It is calculated as the total weight along the shortest path to the goal divided by the number of iterations.
-    \item \textbf{Scaled targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (1).
-    \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
-    \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
+    \item \textbf{Original shortest path distance.} The distance between the pawn and the goal, without considering future fence placements.
+    \item \textbf{Path resiliency.} The distance of the shortest path after completing the path finding and edge weight modification iterations. If there are many paths from the current location to the goal, the added edge weight will be distributed across these paths, and this feature will be lower. If there are few paths for a player to take, they will accumulate a large amount of weight. This feature encodes the calculation of Fig.~\ref{fig:resiliency}B/C.
+    \item \textbf{Fence count.} The number of fences that a player is allowed to place.
+    \item \textbf{Path liability.} Encodes the amount to which both players need the same paths to win. Encodes the shortest distance along the liability graph (Fig.~\ref{fig:resiliency}D).
+    \item \textbf{Maximum liability.} Encodes the maximum weight value in the liability graph.
 \end{enumerate}
 
+% \begin{enumerate}
+%     \item \textbf{Scaled resiliency distance.} This scalar encodes the information of Fig.~\ref{fig:resiliency}B. It is the percentage of the total weight that is included in the shortest path from the player to the goal after all of the iterations are complete.
+%     \item \textbf{Raw resiliency distance.} This scalar is similar to (1), but it does not depend on the amount of total weight added during the iterative phase. It is calculated as the total weight along the shortest path to the goal divided by the number of iterations.
+%     \item \textbf{Scaled targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (1).
+%     \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
+%     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
+% \end{enumerate}
+
 \subsection{Training Data Generation}
+
+To use machine learning method to understand positions based on these path resiliency features, we needed to be able to generate training examples. These training examples would include the path resiliency features and a ``ground truth'' value of the position. As we will discuss later, a sufficient number of iterations allows any MCTS model to perform well (Section~\ref{sec:moreitersisbetter}). To generate training examples, we had the basic model play against itself with a large number of MCTS iterations. After the game was concluded, we created an example out of each position that was seen in the game, and whether that position ultimately led to a victory. Each game was initialized with four random moves to ensure variety in the positions. 
+
 
 \section{Evaluation}
 
@@ -173,6 +182,7 @@ As noted earlier, the strength of an MCTS system is entirely dependent on the st
 The first principle verifies that an MCTS system is working as expected, while the second principle gives us a method of comparison between different systems.
 
 \subsection{Principle 1: Increasing Iterations Improves Performance}
+\label{sec:moreitersisbetter}
 
 To verify that increasing the number of iterations increased the performance of our models, we created a methodology to determine the relative playing strength between two models. A first thought would be to play the model against itself; however such a method would only test the model against positions that it itself selects rather than the full breadth of positions that it could encounter. Instead, we conduct many test games and begin each test game with a seqeuence of randomly selected moves. While this process does ensure the model is forced to play from a variety of unique positions, it presents a certain unfairness. Some positions are clearly lost, and are easily converted to wins by the opponent. We avoid this issue by looking at the ratio of wins to losses and draws. Stronger models will be able to find more subtle paths to victory, and will thus achieve a higher win to loss ratio against weaker models when starting from random positions.
 
@@ -183,34 +193,36 @@ To verify that increasing the number of iterations increased the performance of 
     \label{fig:selfplay}
 \end{figure}
 
-When playing the naive model against itself, our tests indicate that the performance increases as the number of iterations increases as expected (Fig.~\ref{fig:selfplay}A). Interestingly, when the number of iterations for both players are equal at 1000, player 2 wins. This potentially indicates that the game mechanics or the use of random moves biases towards player 2. Nevertheless, principle 1 is supported in this test.
 
-When playing the basic model against the naive model, there is a similar upward trend (Fig.~\ref{fig:selfplay}B). The model also reaches a similiar peak performance, the point at which increasing the iterations does not provide performance enhancements. Although, the basic model reaches this peak performance at a lower number of iterations, supporting the theory that its evaluation function is more accurate. 
 
 \subsection{Principle 2: Better Evaluations Functions Require Fewer Iterations}
 
 MCTS systems compensate for imperfect evaluation functions by iteratively exploring and exploiting the most promising potential moves. As the number of iterations increases, the model's understanding of the position becomes more complete, and its analysis becomes more accurate. We compare several different evaluation functions to understand how quickly our models are able to understand more complex positions.
 
-We have the models evaluate a prearranged position (Fig.~\ref{fig:MCTS}A). This position is designed like a tactics puzzle in chess: there is a clear winner with a bit of subtlety in the execution. First, we verify that our MCTS system is able to solve the puzzle. This puzzle is designed as a forced win for player 1, but there is only one right move. Every other move allows player 2 to force a win. The MCTS system selects the best move by finding the child of the root node with the highest $w / n$ ratio. We examine these ratios after 200 and 5000 iterations. It is clear that the model has found the best move after 200 iterations, and it is even more certain after 5000 iterations (Fig.~\ref{fig:MCTS}B).
 
-We use the naive MCTS system as a baseline to compare other systems against. Its evaluation function provides no information about the board, only returning a nonzero value in terminal positions. When MCTS systems evalute with the naive evaluation function, there is an immediate and rapid drop (Fig.~\ref{fig:MCTS}D). This drop is an expected result when analyzing a position with a hidden tactic. With only a shallow search, it seems that the position is lost. It is only after the model has found the winning move and sufficiently explored to verify the expected outcome that the evaluation the increases. As expected, the calculated strength of the position continues to increase until the end of the experiment.
+\subsubsection{Simple Tactics}
+We have the models evaluate a prearranged position (Fig.~\ref{fig:MCTS}A). This position is designed like a tactics puzzle in chess: there is a clear winner with a bit of subtlety in the execution. First, we verify that our MCTS system is able to solve the puzzle. This puzzle is a forced win for player 1, but there is only one right move. Every other move allows player 2 to force a win. The MCTS system selects the best move by finding the child of the root node with the highest $w / n$ ratio. We examine these ratios after 200 and 5000 iterations. We also examine the value of $w / n$ for the root node after every MCTS iteration. This value is the strength of the position. A positive strength value means that the model has predicted the player to move will win the game. A negative strength value means the opponent is predicted win the game. It is clear that the naive model has found the best move after 200 iterations, and it is even more certain after 5000 iterations (Fig.~\ref{fig:MCTS}B).
+
+We use the naive MCTS system as a baseline to compare other systems against. Its evaluation function provides no information about the board, always returning zero in non-terminal positions. When MCTS systems evalute with the naive evaluation function, there is an immediate and rapid drop in the calculated strength of the position (Fig.~\ref{fig:MCTS}D). This drop is an expected result when analyzing a position with a hidden tactic. With only a shallow search, it seems that the position is lost. It is only after the model has found the winning move and sufficiently explored to verify it the position strength evaluation the increases. As expected, the calculated strength of the position continues to increase until the end of the experiment. (The true strength of the position is 1.)
 
 
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{MCTS_eval.png}
-    \caption{\textbf{Solving a Simple Tactic.} \textbf{(A)} A sample benchmark position that we selected to examine the model's strength as the iteration count increases. Player 1 (red) is to move. If they move directly toward the goal, they will lose and player 2 (green) will reach their goal first. However, if they block player 2 using a wall, they will win. For simplicity, each player has one wall remaining to place. This simple strategy puzzle should be solveable by all MCTS systems with enough iterations. \textbf{(B, C)} There are 24 valid moves from this position. Exactly one of them prevents player 2 from winning the game. This winning move is marked with *. This graph illustrates the softmax of $w/n$ for each possible move after 200 and 5000 MCTS iterations of the basic MCTS model. Higher bars indicate moves that the model prefers. \textbf{(D-F)} Various models' evaluations of the position as they perform more MCTS iterations. The correct evaluation is 1, as the position is  a forced win. Dashed lines indicate when the histograms were sampled.}
+    \caption{\textbf{Solving a Simple Tactic.} \textbf{(A)} A sample benchmark position that we selected to examine the model's strength as the iteration count increases. Player 1 (red) is to move. If they move directly toward the goal, they will lose and player 2 (green) will reach their goal first. However, if they block player 2 using a wall, they will win. For simplicity, each player has one wall remaining to place. This simple strategy puzzle should be solveable by all MCTS systems with enough iterations. \textbf{(B, C)} There are 24 valid moves from this position. Exactly one of them prevents player 2 from winning the game. This winning move is marked with *. The height of the bars is the softmax of $w/n$ for each possible move after 200 and 5000 MCTS iterations of the basic MCTS model. Higher bars indicate moves that the model prefers. \textbf{(D-F)} Various models' evaluations of the position as they perform more MCTS iterations. The correct evaluation is 1, as the position is  a forced win. Dashed lines indicate when the histograms were sampled.}
     \label{fig:MCTS}
 \end{figure}
 
-The basic evaluation function provides an iterative improvement over the naive function. Comparing the strength calculated by the basic evaluation function to the strength calculated by the naive evaluation function reveals a similar yet improved pattern (Fig.~\ref{fig:MCTS}E). There is a rapid drop followed by a more gradual improvement as the model gains understanding of the position. However, this model approaces the correct evaluation more quickly, confirming the improved performance of the evaluation function. 
+The basic evaluation function provides an iterative improvement over the naive function. Comparing the strength calculated by the basic evaluation function to the strength calculated by the naive evaluation function reveals a similar yet improved pattern (Fig.~\ref{fig:MCTS}E). There is a rapid drop followed by a more gradual improvement as the model gains an understanding of the position. However, this model approaches the correct evaluation slightly more quickly, confirming the improved performance of the basic evaluation function. 
+
+The random forest evaluation function demonstrates a marked improvement over both the naive and basic functions. 
 
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{Adv_tactic.png}
-    \caption{\textbf{Advanced Strategy.} \textbf{(A)} This puzzle is player 1 (red) to move. Each player has one fence remaining to place. Player 1 is closer to their goal and moves first, but they are susceptible to a fence blocking their path. If player 2 (green) is able to block player 1 with a fence, player 2 can force a win. Player 1 must employ an unintinitive move to maintain the lead: placing a fence to block their own unopportune paths to the goal. As the rules require that every player have a path to the goal, if a player delilberately blocks their own alternative paths, their opponent will not be allowed to block them with fences. There are four legal fence placements that player 1 employ to accomplish this goal. These placements are denoted as dashed orange lines. These are the only winning moves for player 1. \textbf{(B-F)}~See Figure~\ref{fig:MCTS}.}
+    \caption{\textbf{Advanced Strategy.} \textbf{(A)} This puzzle is player 1 (red) to move. Each player has one fence remaining to place. Player 1 is closer to their goal and moves first, but they are susceptible to a fence blocking their path. If player 2 (green) is able to block player 1 with a fence, player 2 can force a win. Player 1 must employ an unintinitive move to maintain the lead: placing a fence to block their own unopportune paths to the goal. As the rules require that every player have a path to the goal, if a player delilberately blocks their own alternative paths, their opponent will not be allowed to block them with fences. There are four legal fence placements that player 1 could employ to accomplish this goal. These placements are denoted as dashed orange lines. These are the only winning moves for player 1. \textbf{(B-F)}~See Figure~\ref{fig:MCTS}.}
     \label{fig:AdvTactic}
 \end{figure}
 
