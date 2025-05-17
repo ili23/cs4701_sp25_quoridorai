@@ -312,9 +312,9 @@ ax_cbar.axis("off")
 # plt.rcParams['text.usetex'] = True
 
 render(ax00, "(A) Example position", None, (1, 2))
-render(ax01, "(B) P1 resillience weights", graph_path1, (1,), colorbar=ax_cbar)
-render(ax10, "(C) P2 resillience weights", graph_path2, (2,))
-render(ax11, "(D) Liability weights for P1", final_graph, (1, 2))
+render(ax01, "(B) P1 resiliency graph", graph_path1, (1,), colorbar=ax_cbar)
+render(ax10, "(C) P2 resiliency graph", graph_path2, (2,))
+render(ax11, "(D) P1 liability graph", final_graph, (1, 2))
 
 plt.tight_layout()
 plt.savefig("../report/path_figure.png", dpi=400)

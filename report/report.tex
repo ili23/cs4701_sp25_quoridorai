@@ -30,13 +30,13 @@
 \titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection.}{0.5em}{}
 \usepackage{hyperref}
 % Project Links
-\newcommand{\githubLink}{\url{test}}
+\newcommand{\githubLink}{\url{https://github.com/ili23/cs4701_sp25_quoridorai}}
 \newcommand{\presentationLink}{\url{test}}
 % Bibliography (basic)
 % \usepackage[superscript,sort&compress]{natbib}
 
 % Title
-\title{\bfseries Using Monte Carlo Tree Search and Random Forest Decision Trees in an AI Agent to Play Quoridor}
+\title{\bfseries Using Monte Carlo Tree Search, Neural Networks, and Random Forest Decision Trees in an AI Agent to Play Quoridor}
 \author{
     Iram Liu, Jacob Groner, Mason Raffo
 }
@@ -45,11 +45,10 @@
 \begin{document}
 \maketitle
 
-\begin{abstract}
-We present a Monte Carlo Tree Search and neural network evaluation method to play Quoridor, a two person deterministic strategy game with a high branching factor and numerous intricacies.
+\begin{abstract}We present a Monte Carlo Tree Search, neural network, and random forest decision tree evaluation method to play Quoridor, a two person deterministic strategy game with a high branching factor and numerous intricacies.
 \end{abstract}
-Github Link: \githubLink \\
-Presentation Recording Link: \presentationLink
+GitHub Repo: \githubLink \\
+Presentation Recording: \presentationLink
 \section{Introduction}
 Quoridor is a deterministic, two player game with perfect information. Each player has a pawn on a square board and a limited number of fences. Players start on opposing sides of the board, and their goal is simple: to reach their opponent's back row. On each turn, they may either opt to move their pawn a single space or to place a fence. Fences sit between board spaces and block pawns from moving across. Players are required to leave at least one viable path for their opponent to reach the goal, and the first player to reach their corresponding goal area wins the game.
 
@@ -216,7 +215,7 @@ In our final implementation, only edges that can be blocked by valid fence place
 %     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D. 
 % \end{enumerate}
 \subsection{Convolutional Neural Network Design}
-To improve the speed of the evaluation function, we implemented a convolutional neural network (CNN) to replace the random roll-outs. We chose to use a CNN since we wanted our model to learn and recognize pawn and wall patterns regardless of where it was on the board. 
+To speed up the evaluation function, we replaced the random roll-outs with a trained convolutional neural network (CNN). The key idea was that a well-trained model could approximate the value of a game state accurately, allowing us to achieve comparable performance with significantly fewer MCTS iterations. We chose a CNN because of its ability to recognize spatial patterns—such as pawn and wall configurations—regardless of their positions on the board. This makes it well-suited for capturing the structure of the game state. The architecture of the CNN is shown in Fig.~\ref{fig:cnn_arch}. The input is a $5 \times 5$ board encoded across four channels, each representing different elements of the game: the positions of both pawns, and the horizontal and vertical walls. The model consists of three convolutional layers with ReLU activations, followed by fully connected layers that map the flattened features to the final output which is a single scalar value between $-1$ and $1$, indicating how favorable the position is for player 1. 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{cnn_arch.png}
@@ -232,7 +231,9 @@ To use machine learning method to understand positions based on these path resil
 
 \subsection{Principles of Evaluation}
 
-As noted earlier, the strength of an MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance of our system by checking for two principles:
+As mentioned earlier, our original goal was to have our bot compete against other people's algorithms as well as existing online Quoridor bots. Unfortunately, since we reduced the board size to 5 × 5 to address the computational limitations, we couldn't find any available Quoridor agents that were compatible with this configuration. As a result, we had to explore alternative evaluation strategies.
+
+The strength of an MCTS system is entirely dependent on the strength of its evaluation function, the number of search iterations it performs, and the proper balance between exploration and exploitation. To confirm that our MCTS system was working as expected, we conducted several tests. These tests aim to validate the performance of our system by checking for two principles:
 
 \begin{enumerate}
     \item As the number of iterations is increased for a given system, the playing strength should increase.
@@ -253,7 +254,7 @@ To verify that increasing the number of iterations increased the performance of 
     \label{fig:selfplay}
 \end{figure}
 
-
+Playing various MCTS models against the naive model verifies that the MCTS models works as expected. The proportion of wins increases as the number of iterations increases, even when playing the naive model against itself (Fig.~\ref{fig:MCTS}A). The differences in performance highlight the difference in accuracy between the models' evaluation functions. We were initially surprised by the high performance of the basic model (Fig.~\ref{fig:MCTS}B). After more time, it seems that the basic model's laser focus on reaching the end goal without metaphorical distractions is not a big hinderance when it has a huge number of MCTS iterations to investiage hidden pitfalls. The CNN performed extremely similarly to the Naive model (Fig.~\ref{fig:MCTS}C). We will examine this curious result later. The random forest decision tree performs very strongly, achieving an high win ratio with a minimal number of iterations (Fig.~\ref{fig:MCTS}D). 
 
 \subsection{Principle 2: Better Evaluation Functions Require Fewer Iterations}
 
@@ -261,7 +262,7 @@ MCTS systems compensate for imperfect evaluation functions by iteratively explor
 
 
 \subsubsection{Simple Tactics}
-We have the models evaluate a prearranged position (Fig.~\ref{fig:MCTS}A). This position is designed like a tactics puzzle in chess: there is a clear winner with a bit of subtlety in the execution. First, we verify that our MCTS system is able to solve the puzzle. This puzzle is a forced win for player 1, but there is only one right move. Every other move allows player 2 to force a win. The MCTS system selects the best move by finding the child of the root node with the highest $w / n$ ratio. We examine these ratios after 200 and 5000 iterations. We also examine the value of $w / n$ for the root node after every MCTS iteration. This value is the strength of the position. A positive strength value means that the model has predicted the player to move will win the game. A negative strength value means the opponent is predicted win the game. It is clear that the naive model has found the best move after 200 iterations, and it is even more certain after 5000 iterations (Fig.~\ref{fig:MCTS}B).
+We ask the models to evaluate a prearranged position (Fig.~\ref{fig:MCTS}A). This position is designed like a tactics puzzle in chess: there is a clear winner with a bit of subtlety in the execution. First, we verify that our MCTS system is able to solve the puzzle. This puzzle is a forced win for player 1, but there is only one right move. Every other move allows player 2 to force a win. The MCTS system selects the best move by finding the child of the root node with the highest $w / n$ ratio. We examine these ratios after 200 and 5000 iterations. We also examine the value of $w / n$ for the root node after every MCTS iteration. This value is the strength of the position. A positive strength value means that the model has predicted the player to move will win the game. A negative strength value means the opponent is predicted win the game. It is clear that the naive model has found the best move after 200 iterations, and it is even more certain after 5000 iterations (Fig.~\ref{fig:MCTS}B).
 
 We use the naive MCTS system as a baseline to compare other systems against. Its evaluation function provides no information about the board, always returning zero in non-terminal positions. When MCTS systems evalute with the naive evaluation function, there is an immediate and rapid drop in the calculated strength of the position (Fig.~\ref{fig:MCTS}D). This drop is an expected result when analyzing a position with a hidden tactic. With only a shallow search, it seems that the position is lost. It is only after the model has found the winning move and sufficiently explored to verify it the position strength evaluation the increases. As expected, the calculated strength of the position continues to increase until the end of the experiment. (The true strength of the position is 1.)
 
@@ -270,30 +271,37 @@ We use the naive MCTS system as a baseline to compare other systems against. Its
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{MCTS_eval.png}
-    \caption{\textbf{Solving a Simple Tactic.} \textbf{(A)} A sample benchmark position that we selected to examine the model's strength as the iteration count increases. Player 1 (red) is to move. If they move directly toward the goal, they will lose and player 2 (green) will reach their goal first. However, if they block player 2 using a wall, they will win. For simplicity, each player has one wall remaining to place. This simple strategy puzzle should be solveable by all MCTS systems with enough iterations. \textbf{(B, C)} There are 24 valid moves from this position. Exactly one of them prevents player 2 from winning the game. This winning move is marked with *. The height of the bars is the softmax of $w/n$ for each possible move after 200 and 5000 MCTS iterations of the basic MCTS model. Higher bars indicate moves that the model prefers. \textbf{(D-F)} Various models' evaluations of the position as they perform more MCTS iterations. The correct evaluation is 1, as the position is  a forced win. Dashed lines indicate when the histograms were sampled.}
+    \caption{\textbf{Solving a Simple Tactic.} \textbf{(A)} A sample benchmark position that we selected to examine the model's strength as the iteration count increases. Player 1 (red) is to move. If they move directly toward the goal, they will lose and player 2 (green) will reach their goal first. However, if they block player 2 using a wall, they will win. For simplicity, each player has one wall remaining to place. This simple strategy puzzle should be solveable by all MCTS systems with enough iterations. \textbf{(B-D)} There are 24 valid moves from this position. Exactly one of them prevents player 2 from winning the game. This winning move is marked with *. The height of the bars is the softmax of $w/n$ for each possible move after 200 and 5000 MCTS iterations of the basic MCTS model. Higher bars indicate moves that the model prefers. \textbf{(E-H)} Various models' evaluations of the position as they perform more MCTS iterations. The correct evaluation is 1, as the position is  a forced win. Dashed lines indicate when the histograms were sampled.}
     \label{fig:MCTS}
 \end{figure}
 
-The basic evaluation function provides an iterative improvement over the naive function. Comparing the strength calculated by the basic evaluation function to the strength calculated by the naive evaluation function reveals a similar yet improved pattern (Fig.~\ref{fig:MCTS}E). There is a rapid drop followed by a more gradual improvement as the model gains an understanding of the position. However, this model approaches the correct evaluation slightly more quickly, confirming the improved performance of the basic evaluation function. 
+The basic evaluation function provides an iterative improvement over the naive function. Comparing the strength calculated by the basic evaluation function to the strength calculated by the naive evaluation function reveals a similar yet improved pattern (Fig.~\ref{fig:MCTS}E). There is a rapid drop followed by a more gradual improvement as the model gains an understanding of the position. However, this model approaches the correct evaluation slightly more quickly, confirming the improved performance of the basic evaluation function.
 
-The random forest evaluation function demonstrates a marked improvement over both the naive and basic functions. 
+The evaluation of the CNN was strikingly similar to the evaluation of the naive model (Fig.~\ref{fig:MCTS}C,G). Upon further investigation, we found that the trained CNN was always yielding quite small evaluations. This observation completely explains the observed behaviors, the evaluation will be very similar to the naive model. These results indicate that uur CNN was unable to learn to understand these positions.
+
+
+The random forest evaluation function demonstrates a marked improvement over both the naive and basic functions. The model quickly understands the position and returns a high strength evaluation after only a few iterations (Fig.~\ref{fig:MCTS}H).
 
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{Adv_tactic.png}
-    \caption{\textbf{Advanced Strategy.} \textbf{(A)} This puzzle is player 1 (red) to move. Each player has one fence remaining to place. Player 1 is closer to their goal and moves first, but they are susceptible to a fence blocking their path. If player 2 (green) is able to block player 1 with a fence, player 2 can force a win. Player 1 must employ an unintinitive move to maintain the lead: placing a fence to block their own unopportune paths to the goal. As the rules require that every player have a path to the goal, if a player delilberately blocks their own alternative paths, their opponent will not be allowed to block them with fences. There are four legal fence placements that player 1 could employ to accomplish this goal. These placements are denoted as dashed orange lines. These are the only winning moves for player 1. \textbf{(B-F)}~See Figure~\ref{fig:MCTS}.}
+    \caption{\textbf{Advanced Strategy.} \textbf{(A)} This puzzle is player 1 (red) to move. Each player has one fence remaining to place. Player 1 is closer to their goal and moves first, but they are susceptible to a fence blocking their path. If player 2 (green) is able to block player 1 with a fence, player 2 can force a win. Player 1 must employ an unintinitive move to maintain the lead: placing a fence to block their own unopportune paths to the goal. As the rules require that every player have a path to the goal, if a player delilberately blocks their own alternative paths, their opponent will not be allowed to block them with fences. There are four legal fence placements that player 1 could employ to accomplish this goal. These placements are denoted as dashed orange lines. These are the only winning moves for player 1. \textbf{(B-H)}~See Figure~\ref{fig:MCTS}.}
     \label{fig:AdvTactic}
 \end{figure}
 
-\section{Next Steps}
-\section{References}
-% \section{References}
-% Cite your sources using \texttt{natbib} style: \cite{example}.
+\subsection{Advanced Tactics}
 
-% \bibliographystyle{naturemag}
-% \bibliography{references}
-% https://alexlenail.me/NN-SVG/LeNet.html
+We repeated the position evaluation test with a more complicated position. This puzzle is carefully designed to require an unintuitive self-block as the only winning strategy (Fig.~\ref{fig:AdvTactic}A). Models must have a concrete grasp of their susceiptilbly to their opponents fences to solve this position quickly. The naive, basic, and CNN models all solve the position with sufficient iterations (Fig.~\ref{fig:AdvTactic}E-G). The random forest decision tree solves the position much more quickly (Fig.~\ref{fig:AdvTactic}H), supporting our hypothesis that it has a stronger evaluation function. Furthermore, the random forest is the only model to find all four winning moves (Fig.~\ref{fig:AdvTactic}D). The other models all stumble upon one of the winning moves and focus on it entirely, suggesting that they do not understand the position as deeply (Fig.~\ref{fig:AdvTactic}B,C).
+
+\subsection{Advanced Tactics}
+
+We repeated the position evaluation test with a more complicated position. This puzzle is carefully designed to require an unintuitive self-block as the only winning strategy (Fig.~\ref{fig:AdvTactic}A). Models must have a concrete grasp of their susceiptilbly to their opponents fences to solve this position quickly. The naive, basic, and CNN models all solve the position with sufficient iterations (Fig.~\ref{fig:AdvTactic}E-G). The random forest decision tree solves the position much more quickly (Fig.~\ref{fig:AdvTactic}H), supporting our hypothesis that it has a stronger evaluation function. Furthermore, the random forest is the only model to find all four winning moves (Fig.~\ref{fig:AdvTactic}D). The other models all stumble upon one of the winning moves and focus on it entirely, suggesting that they do not understand the position as deeply (Fig.~\ref{fig:AdvTactic}B,C).
+
+\section{References}
+\url{https://www.nature.com/articles/nature16961}
+\\\url{https://alexlenail.me/NN-SVG/LeNet.html}
+\\\url{https://www.researchgate.net/publication/327679826_Monte_Carlo_Tree_Search_for_Quoridor}
 
 \end{document}
 
