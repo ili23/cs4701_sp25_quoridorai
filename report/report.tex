@@ -167,12 +167,12 @@ In our final implementation, only edges that can be blocked by valid fence place
 %     \item \textbf{Raw targetability.} This scalar encodes the information of Fig.~\ref{fig:resiliency}D in the same method as (2).
 %     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D.
 % \end{enumerate}
-\subsection{Convolutional Neural Network to Replace the Random Roll-Outs}
+\subsection{Convolutional Neural Network Design}
 To improve the speed of the evaluation function, we implemented a convolutional neural network (CNN) to replace the random roll-outs. We chose to use a CNN since we wanted our model to learn and recognize pawn and wall patterns regardless of where it was on the board. 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{cnn_arch.png}
-    \caption{\textbf{Path resiliency.} \textbf{(A)} An example position of the board. Player 1 is red; Player 2 is green; Fences are black lines. Hashed regions denote the goal area a player must reach to win. \textbf{(B, C)} Resiliency weights of players 1 and 2, respectively. Lines between board squares represent edges. The color of the edge represents the weight after the designated number of pathfinding iterations. Higher values indicate that the edge is harder to avoid when finding alternative short paths to the goal area. \textbf{(D)} Calculated as player 1 resiliency weights minus player 2 resiliency weights. A high values indicates that the edge is very damaging to player 1 when blocked, while not damaging to player 2. In this example, a fence placed directly to the left of player 1 would require major detours for player 1 without interrupting many of player 2's paths to the goal. Thus, it has a high weight.}
+    \caption{\textbf{CNN architecture.}}
     \label{fig:cnn_arch}
 \end{figure}
 \subsection{Training Data Generation}
