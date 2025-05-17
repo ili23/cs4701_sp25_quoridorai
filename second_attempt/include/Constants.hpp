@@ -1,5 +1,5 @@
 #pragma once
-#define POS1
+// #define POS1
 #define NO_MODEL
 
 constexpr int kSearchIterations = 30000;

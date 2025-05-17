@@ -191,7 +191,7 @@ In our final implementation, only edges that can be blocked by valid fence place
 %     \item \textbf{Maximum liability.} This scalar encodes the intensity of the highest weight of Fig.~\ref{fig:resiliency}D. 
 % \end{enumerate}
 \subsection{Convolutional Neural Network Design}
-To improve the speed of the evaluation function, we implemented a convolutional neural network (CNN) to replace the random roll-outs. We chose to use a CNN since we wanted our model to learn and recognize pawn and wall patterns regardless of where it was on the board. 
+To speed up the evaluation function, we replaced the random roll-outs with a trained convolutional neural network (CNN). The key idea was that a well-trained model could approximate the value of a game state accurately, allowing us to achieve comparable performance with significantly fewer MCTS iterations. We chose a CNN because of its ability to recognize spatial patterns—such as pawn and wall configurations—regardless of their positions on the board. This makes it well-suited for capturing the structure of the game state. The architecture of the CNN is shown in Fig.~\ref{fig:cnn_arch}. The input is a $5 \times 5$ board encoded across four channels, each representing different elements of the game: the positions of both pawns, and the horizontal and vertical walls. The model consists of three convolutional layers with ReLU activations, followed by fully connected layers that map the flattened features to the final output which is a single scalar value between $-1$ and $1$, indicating how favorable the position is for player 1. 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\linewidth]{cnn_arch.png}
